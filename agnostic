@@ -8,7 +8,15 @@
 #   agnostic help
 
 set -e
-FW_ROOT="$(cd "$(dirname "$0")" && pwd)"
+
+# Resolve symlink chain so the CLI works when installed via `ln -s`
+SOURCE="${BASH_SOURCE[0]:-$0}"
+while [ -L "$SOURCE" ]; do
+  DIR="$(cd -P "$(dirname "$SOURCE")" && pwd)"
+  SOURCE="$(readlink "$SOURCE")"
+  [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
+done
+FW_ROOT="$(cd -P "$(dirname "$SOURCE")" && pwd)"
 
 cmd="${1:-help}"
 shift || true
