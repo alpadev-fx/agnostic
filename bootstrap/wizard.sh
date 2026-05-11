@@ -21,12 +21,17 @@ PROJECT_DIR_NAME=$(basename "$ABS_TARGET")
 DETECTED=$("$FW_ROOT/bootstrap/detect-stack.sh" --dir="$ABS_TARGET" | tr '\n' ',' | sed 's/,$//')
 PRIMARY=$("$FW_ROOT/bootstrap/detect-stack.sh" --dir="$ABS_TARGET" --primary 2>/dev/null || echo "")
 
-# Detect git remote → suggest GitHub repo
+# Detect git remote → suggest GitHub repo (python3 — macOS sed lacks lazy quantifiers)
 GH_REPO_DEFAULT=""
 if git -C "$ABS_TARGET" rev-parse --git-dir &>/dev/null; then
   REMOTE_URL=$(git -C "$ABS_TARGET" remote get-url origin 2>/dev/null || true)
   if [ -n "$REMOTE_URL" ]; then
-    GH_REPO_DEFAULT=$(echo "$REMOTE_URL" | sed -E 's|.*[/:]([^/:]+/[^/]+?)(\.git)?$|\1|')
+    GH_REPO_DEFAULT=$(echo "$REMOTE_URL" | python3 -c "
+import sys, re
+url = sys.stdin.read().strip()
+m = re.search(r'[/:]([^/:]+/[^/]+?)(?:\.git)?\$', url)
+print(m.group(1) if m else '')
+" 2>/dev/null)
   fi
 fi
 
