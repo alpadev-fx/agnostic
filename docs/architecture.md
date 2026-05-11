@@ -2,8 +2,8 @@
 
 ## Principles
 
-1. **Token economy is a feature** — every byte in CLAUDE.md costs every session. Default lazy.
-2. **Verification is structural** — agents say "Done" too easily. Hooks enforce.
+1. **Token economy** — every byte in CLAUDE.md costs every session. Default lazy.
+2. **Structural verification** — agents say "Done" too easily. Hooks enforce.
 3. **Layered context** — L0/L1 always-loaded, L2/L3/Rules on demand.
 4. **Stack-agnostic core** — universal patterns + opt-in stack packs.
 5. **Model tiering** — opus for judgment, sonnet for execution.
@@ -13,8 +13,8 @@
 ```
 L0 Guardrails    always-loaded   hooks + permissions
 L1 Knowledge     always-loaded   CLAUDE.md (≤3KB, no @-refs) + .claude/agnostic.toml
-L2 Agents        on demand       6 specialists (architect, security, perf, ...)
-L3 Commands      on demand       11 workflows (/review, /ship, /catchup, ...)
+L2 Agents        on demand       6 specialists
+L3 Commands      on demand       11 workflows
 Rules            on demand       universal + per-stack (paths: frontmatter)
 ```
 
@@ -23,19 +23,17 @@ Rules            on demand       universal + per-stack (paths: frontmatter)
 ```
 UserPromptSubmit
  → Claude Reasoning
- → PreToolUse hook         (block destructive)
+ → PreToolUse hook       block destructive
  → Permission check
  → Tool execution
- → PostToolUse hook        (block on lint fail / warn on truncation)
+ → PostToolUse hook      block on lint fail / warn on truncation
 [repeat]
- → Stop hook               (block "Done" if typecheck/lint/test fail)
- → PreCompact hook         (inject summary at context limit)
+ → Stop hook             block "Done" if typecheck/lint/test fail
+ → PreCompact hook       inject summary at context limit
  → Message delivered
 ```
 
-## Hook contract
-
-Hooks emit JSON to stdout.
+## Hook contract (stdout JSON)
 
 **Block destructive Bash:**
 ```json
@@ -47,7 +45,7 @@ Hooks emit JSON to stdout.
 {"decision":"block","reason":"Lint failed: ..."}
 ```
 
-**Non-blocking warning:**
+**Warning (non-blocking):**
 ```json
 {"hookSpecificOutput":{"hookEventName":"PostToolUse","additionalContext":"WARNING: ..."}}
 ```
@@ -56,22 +54,22 @@ Hooks emit JSON to stdout.
 
 ```
 agnostic/
-├── agnostic                 CLI
+├── agnostic                CLI
 ├── bootstrap/
-│   ├── detect-stack.sh      stack probe (monorepo aware)
-│   ├── discover.sh          auto-discovery (README, Makefile, git, ...)
-│   ├── install-plugins.sh   plugin + MCP install (~/.claude/settings.json)
-│   └── install.sh           wipe + write
-├── templates/               CLAUDE.md, agnostic.toml, settings.*, memory/
-├── hooks/                   6 lifecycle scripts
-├── agents/                  6 specialists
-├── commands/                11 workflows
-└── rules/                   universal + 5 stack packs
+│   ├── detect-stack.sh     stack probe (monorepo aware)
+│   ├── discover.sh         auto-discovery from project files
+│   ├── install-plugins.sh  global plugin + MCP + gstack install
+│   └── install.sh          wipe + write project files
+├── templates/              CLAUDE.md, agnostic.toml, settings.*, memory/
+├── hooks/                  6 lifecycle scripts
+├── agents/                 6 specialists
+├── commands/               11 workflows
+└── rules/                  universal + 5 stack packs
 ```
 
 ## Extension
 
-### Add agent
+**Add agent** — drop `.md` in `agents/`:
 ```markdown
 ---
 name: my-agent
@@ -79,26 +77,18 @@ description: When to use
 tools: Read, Grep
 model: sonnet
 ---
-Body.
 ```
-Drop in `agents/`.
 
-### Add command
+**Add command** — drop `.md` in `commands/`:
 ```markdown
 ---
 allowed-tools: Bash, Read
-argument-hint: [args]
 description: One-line
 model: claude-sonnet-4-6
 ---
-Workflow.
 ```
-Drop in `commands/`.
 
-### Add stack rule pack
-1. `mkdir rules/<stack>/`
-2. Add `.md` files with `paths: ["**/*.<ext>"]` frontmatter
-3. Update `bootstrap/install.sh` stack→dir mapping
+**Add stack rule pack** — `mkdir rules/<stack>/` + `.md` with `paths: ["**/*.<ext>"]` frontmatter + update `bootstrap/install.sh` stack→dir mapping.
 
 ## Non-goals
 

@@ -2,47 +2,39 @@
 
 ## Required
 
-**GitHub CLI** (`gh`) — used by `/ship`, `/catchup`, `/fix-issue`, `/new-feature`, `/standup`, `/triage-inbox`.
-
+**gh CLI** — `/ship`, `/catchup`, `/fix-issue`, `/new-feature`, `/standup`, `/triage-inbox`.
 ```bash
 brew install gh && gh auth login
 ```
 
-## Recommended (connect at https://claude.ai/settings/connectors)
+## Recommended
 
-- **Linear MCP** — `/fix-issue`, `/catchup`, `/standup`, `/triage-inbox`
-- **Slack MCP** — `/standup`, `/notify-team`
+Connect at https://claude.ai/settings/connectors:
+- **Linear** — `/fix-issue`, `/catchup`, `/standup`, `/triage-inbox`
+- **Slack** — `/standup`, `/notify-team`
 
-Verify:
-```bash
-claude mcp list | grep -E "Linear|Slack"
-```
-
-## Optional
-
-- **Atlassian MCP** — substitute for Linear (don't enable both)
-- **Gmail / Calendar / Figma** — ad-hoc, no command wires them yet
+Verify: `claude mcp list | grep -E "Linear|Slack"`
 
 ## Auto-installed by `agnostic init`
 
-| Plugin | Marketplace | What |
-|---|---|---|
-| `gopls-lsp` | claude-plugins-official | Go LSP |
-| `claude-mem` | thedotmack | persistent memory across sessions |
-| `playwright` | claude-plugins-official | browser MCP |
-| `atomic-agents` | claude-plugins-official | small focused agent pattern |
-| `frontend-design` | claude-plugins-official | UI design helpers |
-| `caveman` | caveman | terse mode |
+**Plugins → `~/.claude/settings.json`:**
 
-| MCP | URL | What |
-|---|---|---|
-| `stitch` | `https://stitch.googleapis.com/mcp` | Google design tool |
+| Plugin | What |
+|---|---|
+| `gopls-lsp@claude-plugins-official` | Go LSP |
+| `claude-mem@thedotmack` | persistent memory |
+| `playwright@claude-plugins-official` | browser MCP |
+| `atomic-agents@claude-plugins-official` | focused agent pattern |
+| `frontend-design@claude-plugins-official` | UI helpers |
+| `caveman@caveman` | terse mode |
 
-Skip with `agnostic init --skip-plugins`.
+**Marketplaces:** `thedotmack` · `caveman`
 
-## Also auto-cloned
+**MCP via `claude mcp add`:** `stitch` (https://stitch.googleapis.com/mcp)
 
-- **gstack** — Claude Code skill cloned to `~/.claude/skills/gstack/` from `github.com/garrytan/gstack`
+**Skill via `git clone`:** `gstack` → `~/.claude/skills/gstack` (from `github.com/garrytan/gstack`)
+
+Skip: `agnostic init --skip-plugins`.
 
 ## Command × integration matrix
 
@@ -50,31 +42,23 @@ Skip with `agnostic init --skip-plugins`.
 |---|:-:|:-:|:-:|
 | `/ship` | ✓ | – | optional |
 | `/catchup` | ✓ | ✓ | – |
-| `/fix-issue <ID>` | ✓ (`#NNN`) | ✓ (`LIN-NNN`) | – |
-| `/review` | – | – | – |
-| `/bug-hunt` | – | optional | – |
+| `/fix-issue <ID>` | ✓ | ✓ | – |
 | `/standup` | ✓ | ✓ | ✓ |
 | `/triage-inbox` | ✓ | ✓ | – |
-| `/notify-team <msg>` | – | – | ✓ |
-| `/new-feature <name>` | ✓ | optional | – |
+| `/notify-team` | – | – | ✓ |
+| `/new-feature` | ✓ | optional | – |
+| `/review` | – | – | – |
+| `/bug-hunt` | – | optional | – |
 | `/add-endpoint` | – | – | – |
 | `/debug-service` | – | – | – |
 
-## Safety: Slack drafts only
+## Slack safety
 
-Default allowlist: `send_message_draft` ✓ · `send_message` ✗
+Allowlist: `send_message_draft` ✓ · `send_message` ✗
 
-Agent always drafts + asks user before posting.
+Agent always drafts → user reviews → user sends.
 
-## At install
+## Optional
 
-`agnostic init` reports detected integrations:
-
-```
-MCP integrations:
-  ✓ gh CLI authenticated (you)
-  ✓ Linear MCP connected
-  ✓ Slack MCP connected
-```
-
-Missing ones don't block install. Commands needing them fail loudly when invoked.
+- **Atlassian MCP** — substitute Linear if Jira (don't enable both)
+- **Gmail / Calendar / Figma** — ad-hoc, no command wired

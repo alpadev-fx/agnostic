@@ -17,20 +17,16 @@ agnostic help
 
 ## 3. MCPs (1× per Claude account)
 
-Connect at https://claude.ai/settings/connectors → Linear + Slack.
-
-```bash
-claude mcp list | grep -E "Linear|Slack"   # verify
-```
+https://claude.ai/settings/connectors → Linear + Slack.
 
 ## 4. Per project
 
 ```bash
-cd /path/to/your/project
+cd /path/to/project
 agnostic init
 ```
 
-Done. Discovers from project files, wipes old config, installs framework, enables plugins.
+Done.
 
 ## Flags
 
@@ -38,49 +34,33 @@ Done. Discovers from project files, wipes old config, installs framework, enable
 |---|---|
 | (none) | Wipe + install + enable plugins |
 | `--force` | Also overwrite agnostic.toml / settings.local.json / memory/ |
-| `--no-overwrite` | Skip files that already exist |
+| `--no-overwrite` | Skip existing files |
 | `--backup` | Move wiped config to `.claude.bak.<timestamp>/` |
-| `--skip-plugins` | Don't touch `~/.claude/settings.json` plugins |
+| `--skip-plugins` | Don't touch `~/.claude/settings.json` |
 | `--dry-run` | Show what would happen |
 
-## What `init` writes
-
-```
-project/
-├── CLAUDE.md          ← agent directives (root, required by Claude Code)
-└── .claude/
-    ├── agnostic.toml
-    ├── settings.json
-    ├── settings.local.json
-    ├── memory/
-    ├── agents/        6 specialists
-    ├── commands/      11 workflows
-    ├── hooks/         6 scripts
-    └── rules/         universal + per-stack
-```
-
-## What `init` wipes (destructive — use `--backup` to keep)
+## Wiped
 
 `.claude/` · `CLAUDE.md` · `agent-md.toml` · `AGENTS.md` · `AGENT.md` · `.codex/` · `.cursor/rules/agent-md.mdc` · `.windsurf/rules/agent-md.md` · `.agent-md/` · `.agents/` · old `.claude.bak.*/`
 
-## Preserved (never touched)
+## Preserved
 
-`.claude/settings.local.json` (your permissions) · `.githooks/` · `.gemini/`
+`.claude/settings.local.json` · `.githooks/` · `.gemini/`
 
-## After install — refine 3 files
+## After install
 
-1. **CLAUDE.md** — fill remaining TODOs (hard rules, etc.). Target ≤3KB. NEVER use `@`-refs.
-2. **.claude/agnostic.toml** — verify `[verify]` commands work for your project.
-3. **.claude/settings.local.json** — add project commands to allowlist (`Bash(make:*)`, etc.).
+1. **CLAUDE.md** — fill TODOs. ≤3KB. No `@`-refs.
+2. **`.claude/agnostic.toml`** — verify `[verify]` cmds.
+3. **`.claude/settings.local.json`** — add project cmds to allowlist.
 
-## Update framework
+## Update
 
 ```bash
 cd ~/code/agnostic && git pull
-cd /path/to/project && agnostic update
+cd /project && agnostic update
 ```
 
-`update` = `init --force`. Regenerates everything (incl. user files).
+`update` = `init --force`. Regenerates everything.
 
 ## Uninstall
 
@@ -96,5 +76,5 @@ rm -rf .claude CLAUDE.md
 | `jq: command not found` | `brew install jq` |
 | Hooks don't run | `chmod +x .claude/hooks/*.sh` |
 | Stop hook hangs | Blank `[verify] test` in `.claude/agnostic.toml` |
-| Stack not detected | `agnostic detect` — install still works with universal rules |
-| Too many tokens at boot | `/context` in Claude Code. Audit `@`-refs + unused MCPs |
+| Stack not detected | `agnostic detect`. Works with universal rules anyway |
+| Too many tokens | `/context`. Audit `@`-refs + unused MCPs |
