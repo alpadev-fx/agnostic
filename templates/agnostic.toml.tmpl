@@ -1,0 +1,33 @@
+# agnostic.toml — per-project framework config.
+# Place at repo root. Read by hooks + commands.
+
+[project]
+name = "{{PROJECT_NAME}}"
+# Short summary injected into context before compaction.
+summary = "{{PROJECT_NAME}}: {{ONE_LINE_DESCRIPTION}}. Stack: {{STACK_SUMMARY}}. Hard rules in CLAUDE.md."
+
+[verify]
+# Per-file lint command run after every Write/Edit. {file} is substituted.
+# Examples:
+#   lint_file = "npx --no-install eslint {file}"
+#   lint_file = "ruff check {file}"
+#   lint_file = "golangci-lint run --fast {file}"
+lint_file = "{{LINT_FILE_CMD}}"
+
+# Project-wide commands run at Stop. Leave blank to use heuristics.
+typecheck = "{{TYPECHECK_CMD}}"
+lint      = "{{LINT_CMD}}"
+test      = "{{TEST_CMD}}"
+
+[integrations]
+# Used by /standup, /notify-team — Slack channel names without leading #.
+standup_channel     = "{{STANDUP_CHANNEL}}"
+engineering_channel = "{{ENG_CHANNEL}}"
+incidents_channel   = "{{INCIDENTS_CHANNEL}}"
+releases_channel    = "{{RELEASES_CHANNEL}}"
+
+# Linear team identifier (e.g., "ENG", "LIN") used by /triage-inbox and /fix-issue.
+linear_team = "{{LINEAR_TEAM}}"
+
+# GitHub repo in <owner>/<name> format. Used by /catchup when current dir doesn't infer.
+github_repo = "{{GITHUB_REPO}}"

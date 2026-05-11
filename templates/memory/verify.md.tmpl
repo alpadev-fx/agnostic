@@ -1,0 +1,30 @@
+# Verification Contract — {{PROJECT_NAME}}
+
+## Definition of Done
+
+A change is DONE when ALL apply:
+
+### Text checks
+- Type check passes: `{{TYPECHECK_CMD}}`
+- Lint passes: `{{LINT_CMD}}`
+- Tests pass: `{{TEST_CMD}}`
+
+### Runtime checks (when applicable)
+- Service starts cleanly (no error logs in first 30s)
+- Affected endpoint/CLI/script invokable and returns expected output
+- Migrations apply on a clean DB (if schema changed)
+
+### Visual checks (UI changes only)
+- Build/render succeeds
+- Screenshot captured under `.agent/visual/<feature>.png`
+- Markdown evidence note in `.agent/visual/<feature>.md` with: changed files, route, viewport, observed result
+
+### Independent verification
+- Test added/updated and exercises the new behavior
+- Code reviewed (`/review` or human)
+- For security-sensitive paths: `security-reviewer` agent run
+
+## Skip conditions
+- Pure docs change: skip runtime + visual
+- Test-only change: skip visual
+- Refactor (no behavior change): existing tests still pass, no new tests needed

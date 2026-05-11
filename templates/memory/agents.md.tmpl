@@ -1,0 +1,25 @@
+# Active Agents & Tooling — {{PROJECT_NAME}}
+
+## Stack
+{{STACK_SUMMARY}}
+
+## Verification commands
+See `./agnostic.toml [verify]`.
+
+## Specialist agents
+Loaded from `.claude/agents/`:
+- `architect` (opus) — design decisions, layering, blast radius
+- `code-reviewer` (sonnet) — quality, patterns, testing
+- `security-reviewer` (opus) — auth, validation, secrets, OWASP
+- `performance-analyst` (opus) — Big-O, N+1, hot paths
+- `db-specialist` (sonnet) — schema, migrations, indexing
+- `tdd-guide` (sonnet) — test structure, mocking, coverage
+
+## MCPs in use
+- GitHub via `gh` CLI
+- Linear (issues/comments)
+- Slack (drafts only — `send_message_draft`)
+- (add others as connected)
+
+## Active sub-projects / monorepo dirs
+- TODO: list paths

@@ -1,0 +1,23 @@
+# Test artifacts
+/tmp/test-*
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Editor cruft
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+
+# Local-only experimental files
+*.local
+*.bak
+*.bak.*
