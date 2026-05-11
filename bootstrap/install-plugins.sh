@@ -99,10 +99,21 @@ if command -v claude &>/dev/null; then
   done
 fi
 
-# gstack — external CLI, not auto-installed (needs brew or curl)
-if ! command -v gstack &>/dev/null; then
-  echo "  ⚠ gstack CLI not installed (external tool — separate install required)"
-  echo "    Install: see https://github.com/gstack-cli/gstack (or skip if not needed)"
+# gstack — Claude Code skill cloned into ~/.claude/skills/gstack
+GSTACK_DIR="$HOME/.claude/skills/gstack"
+GSTACK_REPO="https://github.com/garrytan/gstack.git"
+if [ -d "$GSTACK_DIR/.git" ]; then
+  echo "  ✓ gstack skill already installed"
+elif [ -d "$GSTACK_DIR" ]; then
+  echo "  ⚠ gstack dir exists but not a git repo — skipping (remove $GSTACK_DIR to reinstall)"
+else
+  mkdir -p "$HOME/.claude/skills"
+  if git clone --quiet "$GSTACK_REPO" "$GSTACK_DIR" 2>/dev/null; then
+    echo "  + gstack skill cloned → $GSTACK_DIR"
+  else
+    echo "  ⚠ gstack clone failed — install manually:"
+    echo "    git clone $GSTACK_REPO $GSTACK_DIR"
+  fi
 fi
 
 echo "Plugins + MCPs install: done"

@@ -80,7 +80,7 @@ project/
 
 `gopls-lsp` · `claude-mem` · `playwright` · `atomic-agents` · `frontend-design` · `caveman`
 
-MCPs added: `stitch`. External (separate install): `gstack`.
+MCPs added: `stitch`. Skill auto-cloned: `gstack` (from `github.com/garrytan/gstack`).
 
 Skip with `agnostic init --skip-plugins`.
 

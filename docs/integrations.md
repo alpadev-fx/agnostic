@@ -40,9 +40,9 @@ claude mcp list | grep -E "Linear|Slack"
 
 Skip with `agnostic init --skip-plugins`.
 
-## External (not auto-installed)
+## Also auto-cloned
 
-- **gstack** — CLI, separate install: see https://github.com/gstack-cli/gstack
+- **gstack** — Claude Code skill cloned to `~/.claude/skills/gstack/` from `github.com/garrytan/gstack`
 
 ## Command × integration matrix
 
