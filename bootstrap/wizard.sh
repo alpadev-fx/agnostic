@@ -99,26 +99,42 @@ Answers fill CLAUDE.md, agnostic.toml, and memory/*. Press Enter to accept defau
 EOF
 
 # === Section 1: project identity ===
-echo "## Project identity" >&2
-ask Q_PROJECT_NAME       "Project name"                "$PROJECT_DIR_NAME"
-ask Q_DESCRIPTION        "One-line description"        ""
-ask Q_STACK_SUMMARY      "Stack summary"               "${PRIMARY:-mixed}"
+cat <<EOF >&2
 
-echo >&2
+### Project identity ###
+  Identifies the project across CLAUDE.md, agnostic.toml, and memory/.
+  Used by hooks to inject a project summary into context before compaction.
+
+EOF
+ask Q_PROJECT_NAME       "Project name"                "$PROJECT_DIR_NAME"
+ask Q_DESCRIPTION        "One-line description (purpose, domain)"        ""
+ask Q_STACK_SUMMARY      "Stack summary (languages + frameworks)"        "${PRIMARY:-mixed}"
 
 # === Section 2: verification commands ===
-echo "## Verification commands (used by Stop hook + memory/verify.md)" >&2
-ask Q_LINT_FILE_CMD      "Per-file lint (post Write/Edit)" "$LINT_FILE_DEF"
-ask Q_TYPECHECK_CMD      "Project typecheck"            "$TC_DEF"
-ask Q_LINT_CMD           "Project lint"                 "$LINT_DEF"
-ask Q_TEST_CMD           "Project tests"                "$TEST_DEF"
+cat <<EOF >&2
 
-echo >&2
+### Verification commands ###
+  Used by Stop hook to enforce "agent cannot claim 'Done' until project
+  compiles, lints, and tests pass." Also written into memory/verify.md
+  as the definition of done. Blank = skip that check.
+
+EOF
+ask Q_LINT_FILE_CMD      "Per-file lint (runs after every Write/Edit; {file} substituted)" "$LINT_FILE_DEF"
+ask Q_TYPECHECK_CMD      "Project-wide typecheck (runs at Stop)"        "$TC_DEF"
+ask Q_LINT_CMD           "Project-wide lint (runs at Stop)"             "$LINT_DEF"
+ask Q_TEST_CMD           "Project-wide tests (runs at Stop)"            "$TEST_DEF"
 
 # === Section 3: integrations ===
-echo "## Integrations (used by /standup, /triage-inbox, /notify-team)" >&2
-ask Q_GITHUB_REPO        "GitHub repo (owner/name)"     "$GH_REPO_DEFAULT"
-ask Q_LINEAR_TEAM        "Linear team key (blank to skip)" ""
+cat <<EOF >&2
+
+### Integrations ###
+  Wires /standup, /triage-inbox, /notify-team commands to your tools.
+  GitHub repo auto-detected from 'git remote'. Slack channels written
+  without leading '#'.
+
+EOF
+ask Q_GITHUB_REPO        "GitHub repo (owner/name) for gh CLI commands"  "$GH_REPO_DEFAULT"
+ask Q_LINEAR_TEAM        "Linear team key for /triage-inbox (e.g. LF, ENG; blank to skip)" ""
 ask Q_STANDUP_CHANNEL    "Slack standup channel"        "standup"
 ask Q_ENG_CHANNEL        "Slack engineering channel"    "engineering"
 ask Q_INCIDENTS_CHANNEL  "Slack incidents channel"      "incidents"
@@ -126,8 +142,14 @@ ask Q_RELEASES_CHANNEL   "Slack releases channel"       "releases"
 
 echo >&2
 
-# === Section 3.5: Claude Code plugins (auto-detect from ~/.claude/settings.json) ===
-echo "## Claude Code plugins (expected toolchain)" >&2
+cat <<EOF >&2
+
+### Claude Code plugins (expected toolchain) ###
+  Plugins enabled in ~/.claude/settings.json. Documenting them in
+  memory/agents.md tells new devs what to install on their machines
+  to match the team setup. Detected automatically.
+
+EOF
 DETECTED_PLUGINS=""
 DETECTED_MARKETS=""
 if [ -f "$HOME/.claude/settings.json" ]; then
@@ -171,26 +193,43 @@ else
   echo "  No plugins detected in ~/.claude/settings.json (skipping)" >&2
 fi
 
-echo >&2
+cat <<EOF >&2
 
-# === Section 4: project content ===
-echo "## Build & test commands (one shell line per entry)" >&2
+### Build & test commands ###
+  Written into CLAUDE.md's Build & Test section. Shown to the agent
+  every session so it knows how to build/test/lint. Example: 'make run',
+  'npm test', 'pytest'. One shell line per entry.
+
+EOF
 ask_multiline Q_BUILD_COMMANDS "Build commands" ""
 
-echo >&2
+cat <<EOF >&2
 
-echo "## Hard rules (project-specific invariants)" >&2
+### Hard rules (project invariants) ###
+  Written into CLAUDE.md as IMPORTANT rules. Things the agent must
+  NEVER do (e.g. 'Money: integer cents only', 'React Router 5.3 do
+  NOT upgrade', 'Python 3.9-3.10 only'). 5-10 rules ideal.
+
+EOF
 ask_multiline Q_HARD_RULES "Hard rules" "- "
 
-echo >&2
+cat <<EOF >&2
 
-echo "## Architecture pointers (key entry/aggregation files)" >&2
+### Architecture pointers ###
+  Key entry/aggregation files the agent should know about. Written
+  into CLAUDE.md. Example: 'back/cmd/main.go — HTTP server entry',
+  'internal/features/ — vertical slices'.
+
+EOF
 ask_multiline Q_ARCH_POINTERS "Architecture pointers" "- "
 
-echo >&2
+cat <<EOF >&2
 
-# === Section 5: post-install ===
-echo "## Post-install" >&2
+### Post-install ###
+  Optionally commit installed files (CLAUDE.md, agnostic.toml,
+  .claude/, memory/, .gitignore) to your current git branch.
+
+EOF
 ask_yn Q_COMMIT          "Commit to git after install?" "n"
 
 echo >&2
