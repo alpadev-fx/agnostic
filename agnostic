@@ -25,8 +25,25 @@ case "$cmd" in
   init)
     # Auto-discover from project files, then install. No prompts.
     # Edit CLAUDE.md / agnostic.toml after if any field needs refinement.
+    SKIP_PLUGINS=0
+    POSITIONAL=()
+    for a in "$@"; do
+      case "$a" in
+        --skip-plugins) SKIP_PLUGINS=1 ;;
+        *)              POSITIONAL+=("$a") ;;
+      esac
+    done
+    set -- "${POSITIONAL[@]}"
+
     TARGET="${1:-$PWD}"
     NEW_ARGS=("$@")
+
+    # Install recommended plugins + MCPs (global to user)
+    if [ "$SKIP_PLUGINS" != "1" ]; then
+      "$FW_ROOT/bootstrap/install-plugins.sh"
+      echo
+    fi
+
     echo "agnostic init"
     echo "  Discovering project answers from files..."
     eval "$("$FW_ROOT/bootstrap/discover.sh" "$TARGET")"
@@ -64,7 +81,19 @@ init flags:
   --force              Also overwrite agnostic.toml, settings.local.json, memory/
   --no-overwrite       Skip files that already exist (idempotent)
   --backup             Move wiped config to .claude.bak.<timestamp>/ instead of deleting
+  --skip-plugins       Skip plugin + MCP install (default: install all recommended)
   --dry-run            Show what would happen, write nothing
+
+Recommended plugins (auto-installed to ~/.claude/settings.json):
+  gopls-lsp@claude-plugins-official       Go LSP
+  claude-mem@thedotmack                    persistent memory across sessions
+  playwright@claude-plugins-official       browser MCP
+  atomic-agents@claude-plugins-official    small focused agent pattern
+  frontend-design@claude-plugins-official  UI design helpers
+  caveman@caveman                          terse mode
+
+Recommended MCPs (auto-added via claude mcp add):
+  stitch                                   Google design tool
 
 Auto-discovery sources:
   README.md          → description
