@@ -54,7 +54,7 @@ echo
 # frameworks (agent-md, codex, cursor, windsurf) get moved to backup.
 if [ "$DRY_RUN" != "1" ]; then
   TS=$(date +%Y%m%d-%H%M%S)
-  BACKUP_DIR="$ABS_TARGET/.agnostic-bak.$TS"
+  BACKUP_DIR="$ABS_TARGET/.claude.bak.$TS"
   ANY_BACKED_UP=0
 
   backup_path() {
@@ -95,8 +95,8 @@ if [ "$DRY_RUN" != "1" ]; then
   # NOTE: .githooks/ NOT removed — may contain user's own pre-commit logic
 
   if [ "$ANY_BACKED_UP" = "1" ]; then
-    echo "wiped previous agent configs → .agnostic-bak.$TS/"
-    echo "(restore with: rm -rf .claude && mv .agnostic-bak.$TS/.claude .)"
+    echo "wiped previous agent configs → .claude.bak.$TS/"
+    echo "(restore with: rm -rf .claude && mv .claude.bak.$TS/.claude .)"
     echo
   fi
 fi
