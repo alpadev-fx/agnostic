@@ -11,9 +11,9 @@
 #   - BACKS UP existing .claude/ to .claude.bak.<timestamp> on first install
 #
 # Flags:
-#   --force         Also overwrite user-managed files (CLAUDE.md, agnostic.toml, settings.local.json)
-#   --no-overwrite  Skip framework files that already exist (don't overwrite)
-#   --no-backup     Skip backup of existing .claude/ directory
+#   --force         Also overwrite user-managed files (agnostic.toml, settings.local.json)
+#   --no-overwrite  Skip framework files that already exist (idempotent)
+#   --backup        Move previous config to .claude.bak.<timestamp>/ instead of deleting
 #   --dry-run       Show what would happen, don't write
 
 set -e
@@ -22,14 +22,15 @@ FW_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 TARGET_DIR=""
 FORCE=0
 NO_OVERWRITE=0
-NO_BACKUP=0
+BACKUP=0
 DRY_RUN=0
 
 for arg in "$@"; do
   case "$arg" in
     --force)        FORCE=1 ;;
     --no-overwrite) NO_OVERWRITE=1 ;;
-    --no-backup)    NO_BACKUP=1 ;;
+    --backup)       BACKUP=1 ;;
+    --no-backup)    BACKUP=0 ;;  # legacy alias (default is no-backup now)
     --dry-run)      DRY_RUN=1 ;;
     --*)            echo "Unknown flag: $arg" >&2; exit 1 ;;
     *)              [ -z "$TARGET_DIR" ] && TARGET_DIR="$arg" ;;
@@ -49,25 +50,24 @@ echo "  Target:    $ABS_TARGET"
 [ "$NO_OVERWRITE" = "1" ] && echo "  Mode:      NO-OVERWRITE (skip existing framework files)"
 echo
 
-# --- WIPE existing agent configs (move to single backup dir, then delete) ---
-# Goal: after init, only agnostic-managed files exist. Other agent
-# frameworks (agent-md, codex, cursor, windsurf) get moved to backup.
+# --- WIPE existing agent configs (DESTRUCTIVE by default, opt-in --backup) ---
+# Goal: after init, only agnostic-managed files exist.
 if [ "$DRY_RUN" != "1" ]; then
   TS=$(date +%Y%m%d-%H%M%S)
   BACKUP_DIR="$ABS_TARGET/.claude.bak.$TS"
-  ANY_BACKED_UP=0
+  ANY_PROCESSED=0
 
-  backup_path() {
-    # backup_path SOURCE — moves SOURCE under BACKUP_DIR preserving relative path
+  wipe_path() {
+    # wipe_path SOURCE — removes SOURCE (or moves to BACKUP_DIR if --backup)
     local src="$1"
     [ -e "$ABS_TARGET/$src" ] || return 0
-    if [ "$NO_BACKUP" != "1" ]; then
+    if [ "$BACKUP" = "1" ]; then
       mkdir -p "$BACKUP_DIR/$(dirname "$src")"
       mv "$ABS_TARGET/$src" "$BACKUP_DIR/$src"
-      ANY_BACKED_UP=1
     else
       rm -rf "$ABS_TARGET/$src"
     fi
+    ANY_PROCESSED=1
   }
 
   # Wipe .claude/ (BUT preserve settings.local.json — user permissions)
@@ -75,7 +75,7 @@ if [ "$DRY_RUN" != "1" ]; then
     if [ -f "$ABS_TARGET/.claude/settings.local.json" ]; then
       cp "$ABS_TARGET/.claude/settings.local.json" "$ABS_TARGET/.claude.settings.local.json.preserved"
     fi
-    backup_path ".claude"
+    wipe_path ".claude"
     mkdir -p "$ABS_TARGET/.claude"
     if [ -f "$ABS_TARGET/.claude.settings.local.json.preserved" ]; then
       mv "$ABS_TARGET/.claude.settings.local.json.preserved" "$ABS_TARGET/.claude/settings.local.json"
@@ -83,20 +83,23 @@ if [ "$DRY_RUN" != "1" ]; then
   fi
 
   # Wipe CLAUDE.md (will be regenerated)
-  backup_path "CLAUDE.md"
+  wipe_path "CLAUDE.md"
 
   # Wipe other agent-framework configs (agent-md, codex, cursor, windsurf)
-  backup_path "agent-md.toml"
-  backup_path "AGENTS.md"
-  backup_path "AGENT.md"
-  backup_path ".codex"
-  backup_path ".cursor/rules/agent-md.mdc"
-  backup_path ".windsurf/rules/agent-md.md"
-  # NOTE: .githooks/ NOT removed — may contain user's own pre-commit logic
+  wipe_path "agent-md.toml"
+  wipe_path "AGENTS.md"
+  wipe_path "AGENT.md"
+  wipe_path ".codex"
+  wipe_path ".cursor/rules/agent-md.mdc"
+  wipe_path ".windsurf/rules/agent-md.md"
+  # NOTE: .githooks/ NOT touched — may contain user's own pre-commit logic
 
-  if [ "$ANY_BACKED_UP" = "1" ]; then
-    echo "wiped previous agent configs → .claude.bak.$TS/"
-    echo "(restore with: rm -rf .claude && mv .claude.bak.$TS/.claude .)"
+  if [ "$ANY_PROCESSED" = "1" ]; then
+    if [ "$BACKUP" = "1" ]; then
+      echo "wiped previous agent configs → .claude.bak.$TS/"
+    else
+      echo "removed previous agent configs (use --backup to keep them)"
+    fi
     echo
   fi
 fi
