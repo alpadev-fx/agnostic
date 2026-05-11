@@ -7,11 +7,11 @@
 # Default behavior:
 #   - OVERWRITES framework-managed files (hooks, agents, commands, rules, settings.json)
 #     because these are versioned with the framework
-#   - PRESERVES user-managed files (CLAUDE.md, agnostic.toml, settings.local.json)
+#   - PRESERVES user-managed files (CLAUDE.md, .claude/agnostic.toml, settings.local.json)
 #   - BACKS UP existing .claude/ to .claude.bak.<timestamp> on first install
 #
 # Flags:
-#   --force         Also overwrite user-managed files (agnostic.toml, settings.local.json)
+#   --force         Also overwrite user-managed files (.claude/agnostic.toml, settings.local.json)
 #   --no-overwrite  Skip framework files that already exist (idempotent)
 #   --backup        Move previous config to .claude.bak.<timestamp>/ instead of deleting
 #   --dry-run       Show what would happen, don't write
@@ -46,7 +46,7 @@ echo "agnostic install"
 echo "  Framework: $FW_ROOT"
 echo "  Target:    $ABS_TARGET"
 [ "$DRY_RUN" = "1" ] && echo "  Mode:      DRY RUN (no files written)"
-[ "$FORCE" = "1" ] && echo "  Mode:      FORCE (also overwrite CLAUDE.md, agnostic.toml, settings.local.json)"
+[ "$FORCE" = "1" ] && echo "  Mode:      FORCE (also overwrite CLAUDE.md, .claude/agnostic.toml, settings.local.json)"
 [ "$NO_OVERWRITE" = "1" ] && echo "  Mode:      NO-OVERWRITE (skip existing framework files)"
 echo
 
@@ -70,20 +70,28 @@ if [ "$DRY_RUN" != "1" ]; then
     ANY_PROCESSED=1
   }
 
-  # Wipe .claude/ (BUT preserve settings.local.json — user permissions)
+  # Wipe .claude/ but preserve user files: settings.local.json, .claude/agnostic.toml, memory/
   if [ -d "$ABS_TARGET/.claude" ]; then
-    if [ -f "$ABS_TARGET/.claude/settings.local.json" ]; then
-      cp "$ABS_TARGET/.claude/settings.local.json" "$ABS_TARGET/.claude.settings.local.json.preserved"
-    fi
+    PRESERVE_TMP="$ABS_TARGET/.agnostic-preserved-tmp"
+    rm -rf "$PRESERVE_TMP"
+    mkdir -p "$PRESERVE_TMP"
+    [ -f "$ABS_TARGET/.claude/settings.local.json" ] && mv "$ABS_TARGET/.claude/settings.local.json" "$PRESERVE_TMP/"
+    [ -f "$ABS_TARGET/.claude/.claude/agnostic.toml" ]       && mv "$ABS_TARGET/.claude/.claude/agnostic.toml"       "$PRESERVE_TMP/"
+    [ -d "$ABS_TARGET/.claude/memory" ]              && mv "$ABS_TARGET/.claude/memory"              "$PRESERVE_TMP/"
     wipe_path ".claude"
     mkdir -p "$ABS_TARGET/.claude"
-    if [ -f "$ABS_TARGET/.claude.settings.local.json.preserved" ]; then
-      mv "$ABS_TARGET/.claude.settings.local.json.preserved" "$ABS_TARGET/.claude/settings.local.json"
-    fi
+    [ -f "$PRESERVE_TMP/settings.local.json" ] && mv "$PRESERVE_TMP/settings.local.json" "$ABS_TARGET/.claude/"
+    [ -f "$PRESERVE_TMP/.claude/agnostic.toml" ]       && mv "$PRESERVE_TMP/.claude/agnostic.toml"       "$ABS_TARGET/.claude/"
+    [ -d "$PRESERVE_TMP/memory" ]              && mv "$PRESERVE_TMP/memory"              "$ABS_TARGET/.claude/"
+    rm -rf "$PRESERVE_TMP"
   fi
 
-  # Wipe CLAUDE.md (will be regenerated)
+  # Wipe CLAUDE.md (will be regenerated at root — Claude Code auto-loads from project root)
   wipe_path "CLAUDE.md"
+
+  # Wipe any pre-existing .claude/agnostic.toml/memory at project root (legacy location)
+  wipe_path ".claude/agnostic.toml"
+  wipe_path "memory"
 
   # Wipe other agent-framework configs (agent-md, codex, cursor, windsurf)
   wipe_path "agent-md.toml"
@@ -238,12 +246,12 @@ write_fw "$FW_ROOT/templates/settings.json.tmpl" ".claude/settings.json"
 # --- User-managed files (preserve by default) ---
 write_user "$FW_ROOT/templates/settings.local.json.tmpl" ".claude/settings.local.json"
 
-# agnostic.toml — generated, user-managed
-if [ -f "agnostic.toml" ] && [ "$FORCE" != "1" ]; then
-  echo "keep   agnostic.toml (exists — use --force to regenerate)"
+# .claude/agnostic.toml — generated, user-managed
+if [ -f ".claude/agnostic.toml" ] && [ "$FORCE" != "1" ]; then
+  echo "keep   .claude/agnostic.toml (exists — use --force to regenerate)"
 else
   if [ "$DRY_RUN" = "1" ]; then
-    echo "WOULD write agnostic.toml"
+    echo "WOULD write .claude/agnostic.toml"
   else
     PROJECT_NAME="${AGNOSTIC_PROJECT_NAME:-$(basename "$ABS_TARGET")}"
     case "$PRIMARY" in
@@ -277,8 +285,8 @@ else
         -e "s|{{RELEASES_CHANNEL}}|$REL_CH|g" \
         -e "s|{{LINEAR_TEAM}}|$LIN_TEAM|g" \
         -e "s|{{GITHUB_REPO}}|$GH_REPO|g" \
-        "$FW_ROOT/templates/agnostic.toml.tmpl" > agnostic.toml
-    echo "wrote  agnostic.toml"
+        "$FW_ROOT/templates/agnostic.toml.tmpl" > .claude/agnostic.toml
+    echo "wrote  .claude/agnostic.toml"
   fi
 fi
 
@@ -324,8 +332,8 @@ PYEOF
   fi
 fi
 
-# --- memory/ scaffold (user-managed, preserve existing) ---
-[ "$DRY_RUN" = "1" ] || mkdir -p memory
+# --- memory/ scaffold under .claude/ (user-managed, preserve existing) ---
+[ "$DRY_RUN" = "1" ] || mkdir -p .claude/memory
 case "$PRIMARY" in
   go)     TY_M=""; LC_M="golangci-lint run ./..."; TC_M="go test ./..." ;;
   node)   TY_M="npx tsc --noEmit"; LC_M="npx eslint ."; TC_M="npm test" ;;
@@ -370,7 +378,7 @@ fi
 
 for mem in agents plan progress verify gotchas; do
   src="$FW_ROOT/templates/memory/$mem.md.tmpl"
-  dst="memory/$mem.md"
+  dst=".claude/memory/$mem.md"
   [ -f "$src" ] || continue
   if [ -f "$dst" ] && [ "$FORCE" != "1" ]; then
     echo "keep   $dst (exists — use --force to regenerate)"
@@ -411,7 +419,7 @@ if [ "$DRY_RUN" = "1" ]; then
 else
   echo "Done. Next steps:"
   echo "  1. Edit CLAUDE.md — fill in TODOs (project description, build cmds, hard rules)"
-  echo "  2. Edit agnostic.toml — adjust [verify] commands if heuristics aren't right"
+  echo "  2. Edit .claude/agnostic.toml — adjust [verify] commands if heuristics aren't right"
   echo "  3. Review .claude/settings.local.json — add project-specific permission allowlist"
   echo "  4. Start Claude Code in this directory and try /review or /catchup"
   if ls "$ABS_TARGET"/.claude.bak.* &>/dev/null; then

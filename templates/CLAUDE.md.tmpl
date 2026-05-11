@@ -45,11 +45,11 @@ Default priorities:
 
 Chat history is not durable memory. On session start, read these files when they exist. As work progresses, keep them accurate.
 
-- `memory/agents.md` — active agents, MCPs, tech stack, tooling
-- `memory/plan.md` — macro design and vertical slices
-- `memory/progress.md` — atomic task checklist and current status
-- `memory/verify.md` — definition of done and required checks
-- `memory/gotchas.md` — mistakes already corrected by the human
+- `.claude/memory/agents.md` — active agents, MCPs, tech stack, tooling
+- `.claude/memory/plan.md` — macro design and vertical slices
+- `.claude/memory/progress.md` — atomic task checklist and current status
+- `.claude/memory/verify.md` — definition of done and required checks
+- `.claude/memory/gotchas.md` — mistakes already corrected by the human
 
 If files do not exist, initialize them before substantive work.
 
@@ -75,8 +75,8 @@ Plan in this order:
 
 1. **Context** — map the relevant code and existing patterns.
 2. **Questions** — surface ambiguous requirements and tradeoffs.
-3. **Structure** — update `memory/plan.md` and `memory/verify.md`.
-4. **Tasks** — add atomic steps to `memory/progress.md`.
+3. **Structure** — update `.claude/memory/plan.md` and `.claude/memory/verify.md`.
+4. **Tasks** — add atomic steps to `.claude/memory/progress.md`.
 5. **Execution** — implement the next bounded slice.
 
 For obvious one- or two-line fixes, execute directly and verify.
@@ -110,7 +110,7 @@ These are defaults. Follow the project when it has stronger local conventions (s
 
 ### Senior Review
 
-If you find duplicated state, inconsistent patterns, weak boundaries, or band-aid fixes, surface the issue. If the structural fix is in scope, propose it and implement after approval. If it is out of scope, add a deferred item to `memory/progress.md`.
+If you find duplicated state, inconsistent patterns, weak boundaries, or band-aid fixes, surface the issue. If the structural fix is in scope, propose it and implement after approval. If it is out of scope, add a deferred item to `.claude/memory/progress.md`.
 
 ### Human Code
 
@@ -167,7 +167,7 @@ When building or using agent runtimes, prefer explicit contracts over prose conv
 - Validate structured output before use: required fields, types, allowed values, and paths. Reject malformed tool arguments instead of guessing.
 - When you control helper output, return structured failures with `status`, `type`, `message`, and `suggestion`.
 - Run independent tool calls in parallel when safe, then reconcile the results. Do not parallelize dependent steps.
-- Use selective context loading. Read only relevant files or history, summarize durable findings into `memory/`, and avoid pasting large static prompts or raw dumps into every turn.
+- Use selective context loading. Read only relevant files or history, summarize durable findings into `.claude/memory/`, and avoid pasting large static prompts or raw dumps into every turn.
 - When a host exposes model or reasoning controls, use the cheapest capable mode for routine execution and reserve expensive reasoning for architecture, high-risk decisions, or failure analysis.
 - For high-stakes answers or risky changes, use an adversarial or independent verification step before presenting the result as reliable.
 
@@ -176,7 +176,7 @@ When building or using agent runtimes, prefer explicit contracts over prose conv
 ## 11. Context Management
 
 - After long conversations, re-read relevant files before editing.
-- If memory is degrading, write the current state to `memory/progress.md` before compacting or handing work off.
+- If memory is degrading, write the current state to `.claude/memory/progress.md` before compacting or handing work off.
 - For large files, read focused chunks instead of relying on one huge output.
 - If tool output is truncated, read the saved full output or rerun a narrower command before acting.
 
@@ -184,7 +184,7 @@ When building or using agent runtimes, prefer explicit contracts over prose conv
 
 ## 12. Self-Correction
 
-- After any correction from the human, add the pattern to `memory/gotchas.md`.
+- After any correction from the human, add the pattern to `.claude/memory/gotchas.md`.
 - If a fix fails twice, stop and re-read the relevant code top-down. State what assumption was wrong before trying again.
 - When asked to test your own output, use a new-user path through the feature, not just code inspection.
 
@@ -201,6 +201,6 @@ When building or using agent runtimes, prefer explicit contracts over prose conv
 
 ## 14. Verification Commands
 
-Hooks read `./agnostic.toml [verify]` for project verification commands. Adjust there, not here. Heuristics fire when commands are blank.
+Hooks read `.claude/agnostic.toml [verify]` for project verification commands. Adjust there, not here. Heuristics fire when commands are blank.
 
 Multi-agent compatibility: this directives file is the source of truth. Other agent files (`AGENTS.md`, `AGENT.md`) symlink or copy from here. Hooks live at `.claude/hooks/`; `.githooks/pre-commit` is the cross-agent fallback (enable: `git config core.hooksPath .githooks`).
