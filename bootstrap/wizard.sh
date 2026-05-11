@@ -21,27 +21,30 @@ PROJECT_DIR_NAME=$(basename "$ABS_TARGET")
 DETECTED=$("$FW_ROOT/bootstrap/detect-stack.sh" --dir="$ABS_TARGET" | tr '\n' ',' | sed 's/,$//')
 PRIMARY=$("$FW_ROOT/bootstrap/detect-stack.sh" --dir="$ABS_TARGET" --primary 2>/dev/null || echo "")
 
-# Detect git remote → suggest GitHub repo (python3 — macOS sed lacks lazy quantifiers)
-GH_REPO_DEFAULT=""
-if git -C "$ABS_TARGET" rev-parse --git-dir &>/dev/null; then
-  REMOTE_URL=$(git -C "$ABS_TARGET" remote get-url origin 2>/dev/null || true)
-  if [ -n "$REMOTE_URL" ]; then
-    GH_REPO_DEFAULT=$(echo "$REMOTE_URL" | python3 -c "
-import sys, re
-url = sys.stdin.read().strip()
-m = re.search(r'[/:]([^/:]+/[^/]+?)(?:\.git)?\$', url)
-print(m.group(1) if m else '')
-" 2>/dev/null)
-  fi
-fi
+# Auto-discover defaults from project files
+eval "$("$FW_ROOT/bootstrap/discover.sh" "$ABS_TARGET" 2>/dev/null)"
 
-# Suggest stack-aware verify commands
-case "$PRIMARY" in
-  go)     LINT_FILE_DEF="golangci-lint run --fast {file}"; LINT_DEF="golangci-lint run ./..."; TEST_DEF="go test ./..."; TC_DEF="" ;;
-  node)   LINT_FILE_DEF="npx --no-install eslint {file}";  LINT_DEF="npx eslint .";       TEST_DEF="npm test";   TC_DEF="npx tsc --noEmit" ;;
-  python) LINT_FILE_DEF="ruff check {file}";               LINT_DEF="ruff check .";       TEST_DEF="pytest";     TC_DEF="mypy ." ;;
-  *)      LINT_FILE_DEF=""; LINT_DEF=""; TEST_DEF=""; TC_DEF="" ;;
-esac
+# Map discovered → wizard defaults (fall back to plain stack heuristics if discover empty)
+GH_REPO_DEFAULT="${AGNOSTIC_GITHUB_REPO:-}"
+LINEAR_TEAM_DEFAULT="${AGNOSTIC_LINEAR_TEAM:-}"
+LINT_FILE_DEF="${AGNOSTIC_LINT_FILE_CMD:-}"
+LINT_DEF="${AGNOSTIC_LINT_CMD:-}"
+TEST_DEF="${AGNOSTIC_TEST_CMD:-}"
+TC_DEF="${AGNOSTIC_TYPECHECK_CMD:-}"
+DESC_DEF="${AGNOSTIC_DESCRIPTION:-}"
+STACK_DEF="${AGNOSTIC_STACK_SUMMARY:-${PRIMARY:-mixed}}"
+BUILD_DEF="${AGNOSTIC_BUILD_COMMANDS:-}"
+HARD_DEF="${AGNOSTIC_HARD_RULES:-}"
+ARCH_DEF="${AGNOSTIC_ARCH_POINTERS:-}"
+
+# Final fallbacks if discover found nothing for verify commands
+if [ -z "$LINT_FILE_DEF" ]; then
+  case "$PRIMARY" in
+    go)     LINT_FILE_DEF="golangci-lint run --fast {file}"; LINT_DEF="${LINT_DEF:-golangci-lint run ./...}"; TEST_DEF="${TEST_DEF:-go test ./...}" ;;
+    node)   LINT_FILE_DEF="npx --no-install eslint {file}";  LINT_DEF="${LINT_DEF:-npx eslint .}"; TEST_DEF="${TEST_DEF:-npm test}"; TC_DEF="${TC_DEF:-npx tsc --noEmit}" ;;
+    python) LINT_FILE_DEF="ruff check {file}";               LINT_DEF="${LINT_DEF:-ruff check .}"; TEST_DEF="${TEST_DEF:-pytest}"; TC_DEF="${TC_DEF:-mypy .}" ;;
+  esac
+fi
 
 # === Helpers ===
 ask() {
@@ -107,8 +110,8 @@ cat <<EOF >&2
 
 EOF
 ask Q_PROJECT_NAME       "Project name"                "$PROJECT_DIR_NAME"
-ask Q_DESCRIPTION        "One-line description (purpose, domain)"        ""
-ask Q_STACK_SUMMARY      "Stack summary (languages + frameworks)"        "${PRIMARY:-mixed}"
+ask Q_DESCRIPTION        "One-line description (purpose, domain)"        "$DESC_DEF"
+ask Q_STACK_SUMMARY      "Stack summary (languages + frameworks)"        "$STACK_DEF"
 
 # === Section 2: verification commands ===
 cat <<EOF >&2
@@ -134,7 +137,7 @@ cat <<EOF >&2
 
 EOF
 ask Q_GITHUB_REPO        "GitHub repo (owner/name) for gh CLI commands"  "$GH_REPO_DEFAULT"
-ask Q_LINEAR_TEAM        "Linear team key for /triage-inbox (e.g. LF, ENG; blank to skip)" ""
+ask Q_LINEAR_TEAM        "Linear team key for /triage-inbox (e.g. LF, ENG; blank to skip)" "$LINEAR_TEAM_DEFAULT"
 ask Q_STANDUP_CHANNEL    "Slack standup channel"        "standup"
 ask Q_ENG_CHANNEL        "Slack engineering channel"    "engineering"
 ask Q_INCIDENTS_CHANNEL  "Slack incidents channel"      "incidents"

@@ -23,18 +23,42 @@ shift || true
 
 case "$cmd" in
   init)
-    # Default: interactive wizard. Skip with --non-interactive.
+    # Default: interactive wizard with auto-discovered defaults.
+    # --auto             → discover + install, NO prompts (just go)
+    # --non-interactive  → skip wizard, use heuristic stack defaults + TODOs
     NON_INTERACTIVE=0
+    AUTO=0
     NEW_ARGS=()
     for a in "$@"; do
       case "$a" in
+        --auto)            AUTO=1 ;;
         --non-interactive) NON_INTERACTIVE=1 ;;
         *)                 NEW_ARGS+=("$a") ;;
       esac
     done
     # Auto-detect non-interactive if stdin is not a TTY
     [ ! -t 0 ] && NON_INTERACTIVE=1
-    if [ "$NON_INTERACTIVE" = "1" ]; then
+
+    if [ "$AUTO" = "1" ]; then
+      # Run discover, export, then install
+      TARGET="${NEW_ARGS[0]:-$PWD}"
+      echo "agnostic init --auto"
+      echo "  Discovering project answers from files..."
+      eval "$("$FW_ROOT/bootstrap/discover.sh" "$TARGET")"
+      export AGNOSTIC_PROJECT_NAME AGNOSTIC_DESCRIPTION AGNOSTIC_STACK_SUMMARY \
+             AGNOSTIC_BUILD_COMMANDS AGNOSTIC_HARD_RULES AGNOSTIC_ARCH_POINTERS \
+             AGNOSTIC_LINT_FILE_CMD AGNOSTIC_TYPECHECK_CMD AGNOSTIC_LINT_CMD \
+             AGNOSTIC_TEST_CMD AGNOSTIC_GITHUB_REPO AGNOSTIC_LINEAR_TEAM
+      echo "  Discovered:"
+      echo "    Project:        $AGNOSTIC_PROJECT_NAME"
+      echo "    Stack:          $AGNOSTIC_STACK_SUMMARY"
+      echo "    GitHub repo:    $AGNOSTIC_GITHUB_REPO"
+      echo "    Linear team:    ${AGNOSTIC_LINEAR_TEAM:-(none)}"
+      echo "    Lint cmd:       $AGNOSTIC_LINT_CMD"
+      echo "    Test cmd:       $AGNOSTIC_TEST_CMD"
+      echo
+      exec "$FW_ROOT/bootstrap/install.sh" "${NEW_ARGS[@]}"
+    elif [ "$NON_INTERACTIVE" = "1" ]; then
       exec "$FW_ROOT/bootstrap/install.sh" "${NEW_ARGS[@]}"
     else
       exec "$FW_ROOT/bootstrap/wizard.sh" "${NEW_ARGS[@]}"
