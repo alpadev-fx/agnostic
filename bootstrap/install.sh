@@ -291,6 +291,42 @@ case "$PRIMARY" in
   python) TY_M="mypy ."; LC_M="ruff check ."; TC_M="pytest" ;;
   *)      TY_M=""; LC_M=""; TC_M="" ;;
 esac
+
+# Detect plugins from global settings if not already set by wizard
+if [ -z "${AGNOSTIC_PLUGINS:-}" ] && [ -f "$HOME/.claude/settings.json" ]; then
+  AGNOSTIC_PLUGINS=$(python3 -c "
+import json
+try:
+    d = json.load(open('$HOME/.claude/settings.json'))
+    for k, v in d.get('enabledPlugins', {}).items():
+        if v: print(k)
+except: pass
+" 2>/dev/null)
+fi
+if [ -z "${AGNOSTIC_MARKETPLACES:-}" ] && [ -f "$HOME/.claude/settings.json" ]; then
+  AGNOSTIC_MARKETPLACES=$(python3 -c "
+import json
+try:
+    d = json.load(open('$HOME/.claude/settings.json'))
+    for k, v in d.get('extraKnownMarketplaces', {}).items():
+        src = v.get('source', {})
+        print(f'{k}|{src.get(\"source\",\"?\")}|{src.get(\"repo\",\"?\")}')
+except: pass
+" 2>/dev/null)
+fi
+
+# Build PLUGINS_LIST + MARKETPLACES_LIST as markdown for memory/agents.md
+if [ -n "${AGNOSTIC_PLUGINS:-}" ]; then
+  PLUGINS_LIST=$(echo "$AGNOSTIC_PLUGINS" | sed 's/^/- `/; s/$/`/' | python3 -c "import sys; print(sys.stdin.read().rstrip())")
+else
+  PLUGINS_LIST="(no plugins detected — add as your team adopts them)"
+fi
+if [ -n "${AGNOSTIC_MARKETPLACES:-}" ]; then
+  MARKETPLACES_LIST=$(echo "$AGNOSTIC_MARKETPLACES" | awk -F'|' '{printf "- **%s** → `%s:%s`\n", $1, $2, $3}' | python3 -c "import sys; print(sys.stdin.read().rstrip())")
+else
+  MARKETPLACES_LIST="(none — only default Claude Code marketplaces)"
+fi
+
 for mem in agents plan progress verify gotchas; do
   src="$FW_ROOT/templates/memory/$mem.md.tmpl"
   dst="memory/$mem.md"
@@ -303,12 +339,28 @@ for mem in agents plan progress verify gotchas; do
     [ -f "$dst" ] && echo "WOULD overwrite $dst" || echo "WOULD write $dst"
     continue
   fi
-  sed -e "s|{{PROJECT_NAME}}|$(basename "$ABS_TARGET")|g" \
-      -e "s|{{STACK_SUMMARY}}|$PRIMARY|g" \
-      -e "s|{{TYPECHECK_CMD}}|$TY_M|g" \
-      -e "s|{{LINT_CMD}}|$LC_M|g" \
-      -e "s|{{TEST_CMD}}|$TC_M|g" \
-      "$src" > "$dst"
+  # Use python3 for multiline-safe substitution
+  python3 - "$src" "$dst" \
+    "$(basename "$ABS_TARGET")" "$PRIMARY" "$TY_M" "$LC_M" "$TC_M" \
+    "$PLUGINS_LIST" "$MARKETPLACES_LIST" <<'PYEOF'
+import sys
+src, dst, project, stack, ty, lc, tc, plugins, markets = sys.argv[1:10]
+with open(src) as f:
+    content = f.read()
+subs = {
+    "{{PROJECT_NAME}}": project,
+    "{{STACK_SUMMARY}}": stack,
+    "{{TYPECHECK_CMD}}": ty,
+    "{{LINT_CMD}}": lc,
+    "{{TEST_CMD}}": tc,
+    "{{PLUGINS_LIST}}": plugins,
+    "{{MARKETPLACES_LIST}}": markets,
+}
+for k, v in subs.items():
+    content = content.replace(k, v)
+with open(dst, "w") as f:
+    f.write(content)
+PYEOF
   echo "wrote  $dst"
 done
 

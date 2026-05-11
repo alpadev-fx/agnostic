@@ -15,11 +15,36 @@ Loaded from `.claude/agents/`:
 - `db-specialist` (sonnet) — schema, migrations, indexing
 - `tdd-guide` (sonnet) — test structure, mocking, coverage
 
+## Expected Claude Code Plugins
+
+These plugins are expected to be enabled in your `~/.claude/settings.json`. New devs joining this project should install them to match the team toolchain.
+
+{{PLUGINS_LIST}}
+
+### Custom marketplaces required
+
+{{MARKETPLACES_LIST}}
+
+To enable plugins after install, edit `~/.claude/settings.json`:
+
+```json
+{
+  "enabledPlugins": {
+    "<plugin-name>@<marketplace>": true
+  },
+  "extraKnownMarketplaces": {
+    "<marketplace>": {
+      "source": { "source": "github", "repo": "<owner>/<repo>" }
+    }
+  }
+}
+```
+
 ## MCPs in use
 - GitHub via `gh` CLI
-- Linear (issues/comments)
-- Slack (drafts only — `send_message_draft`)
-- (add others as connected)
+- Linear (issues/comments) — `mcp__claude_ai_Linear__*`
+- Slack (drafts only — `send_message_draft`) — `mcp__claude_ai_Slack__*`
+- (add others as connected at https://claude.ai/settings/connectors)
 
 ## Active sub-projects / monorepo dirs
 - TODO: list paths

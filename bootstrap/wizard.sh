@@ -121,6 +121,53 @@ ask Q_RELEASES_CHANNEL   "Slack releases channel"       "releases"
 
 echo >&2
 
+# === Section 3.5: Claude Code plugins (auto-detect from ~/.claude/settings.json) ===
+echo "## Claude Code plugins (expected toolchain)" >&2
+DETECTED_PLUGINS=""
+DETECTED_MARKETS=""
+if [ -f "$HOME/.claude/settings.json" ]; then
+  DETECTED_PLUGINS=$(python3 -c "
+import json
+try:
+    d = json.load(open('$HOME/.claude/settings.json'))
+    plugins = d.get('enabledPlugins', {})
+    for k, v in plugins.items():
+        if v: print(k)
+except: pass
+" 2>/dev/null)
+  DETECTED_MARKETS=$(python3 -c "
+import json
+try:
+    d = json.load(open('$HOME/.claude/settings.json'))
+    markets = d.get('extraKnownMarketplaces', {})
+    for k, v in markets.items():
+        src = v.get('source', {})
+        kind = src.get('source', '?')
+        repo = src.get('repo', '?')
+        print(f'{k}|{kind}|{repo}')
+except: pass
+" 2>/dev/null)
+fi
+
+if [ -n "$DETECTED_PLUGINS" ]; then
+  echo "  Detected $(echo "$DETECTED_PLUGINS" | wc -l | tr -d ' ') plugins:" >&2
+  echo "$DETECTED_PLUGINS" | sed 's/^/    - /' >&2
+  if [ -n "$DETECTED_MARKETS" ]; then
+    echo "  Detected $(echo "$DETECTED_MARKETS" | wc -l | tr -d ' ') marketplaces:" >&2
+    echo "$DETECTED_MARKETS" | sed 's/|/ → /g' | sed 's/^/    - /' >&2
+  fi
+  echo >&2
+  ask_yn Q_INCLUDE_PLUGINS "Document these as the project's expected toolchain?" "y"
+  if [ "$Q_INCLUDE_PLUGINS" = "y" ]; then
+    Q_PLUGINS="$DETECTED_PLUGINS"
+    Q_MARKETPLACES="$DETECTED_MARKETS"
+  fi
+else
+  echo "  No plugins detected in ~/.claude/settings.json (skipping)" >&2
+fi
+
+echo >&2
+
 # === Section 4: project content ===
 echo "## Build & test commands (one shell line per entry)" >&2
 ask_multiline Q_BUILD_COMMANDS "Build commands" ""
@@ -181,6 +228,8 @@ export AGNOSTIC_STANDUP_CHANNEL="$Q_STANDUP_CHANNEL"
 export AGNOSTIC_ENG_CHANNEL="$Q_ENG_CHANNEL"
 export AGNOSTIC_INCIDENTS_CHANNEL="$Q_INCIDENTS_CHANNEL"
 export AGNOSTIC_RELEASES_CHANNEL="$Q_RELEASES_CHANNEL"
+export AGNOSTIC_PLUGINS="${Q_PLUGINS:-}"
+export AGNOSTIC_MARKETPLACES="${Q_MARKETPLACES:-}"
 
 echo >&2
 echo "## Running install..." >&2
