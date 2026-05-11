@@ -1,46 +1,48 @@
 # Token Budget
 
-## Target after install: ~7K tokens always-loaded
+## Target: ~7K tokens always-loaded after install
 
 | Item | Target |
 |---|---|
 | CLAUDE.md | ≤3KB / ~750 tokens |
-| `.claude/agnostic.toml` | <500 bytes |
-| `.claude/settings.json` | <2KB |
+| .claude/agnostic.toml | <500 bytes |
+| .claude/settings.json | <2KB |
 | Agent metadata (×6) | ~1.2K |
 | Command metadata (×11) | ~1.2K |
-| Rules indexes | lazy — only paths frontmatter loaded |
+| Rules indexes | lazy — paths frontmatter only |
 
-Verify after install: open Claude Code, run `/context`.
+Verify: open Claude Code, run `/context`.
 
-## 5 anti-patterns that bloat sessions
+## 5 anti-patterns
 
 ### 1. `@`-references in CLAUDE.md
 ```markdown
-See @README.md   ← auto-loads entire README (15KB / session)
+See @README.md      ← auto-loads entire README (15KB/session)
 ```
-**Fix:** plain paths (`./README.md`). Claude reads lazily.
+**Fix:** plain paths (`./README.md`).
 
 ### 2. Deep architecture in CLAUDE.md
-**Fix:** stub identity in CLAUDE.md, details in `.claude/rules/` with `paths:` frontmatter.
+**Fix:** stub in CLAUDE.md, details in `.claude/rules/` with `paths:` frontmatter.
 
 ### 3. Multiple browser MCPs
 Playwright + Chrome Control + Brave = 50 redundant tool defs.
 **Fix:** keep one (Playwright).
 
-### 4. Verbose hooks on every prompt
+### 4. Verbose hooks per prompt
 500-word ruleset × every UserPromptSubmit = ~150 tokens/turn.
 **Fix:** hooks silent unless they have something specific to say.
 
 ### 5. Unused MCPs
-Linear MCP alone = ~25 tool defs even if never called.
-**Fix:** `claude mcp list`. Disable unused at claude.ai/settings/connectors.
+Linear MCP = ~25 tool defs even unused.
+**Fix:** `claude mcp list` → disable unused at claude.ai/settings/connectors.
 
 ## Model tiering
 
-- **Opus** — judgment (architect, security, perf)
-- **Sonnet** — execution (code review, db, tests)
-- **Haiku** — mechanical (search, grep)
+| Tier | Use |
+|---|---|
+| Opus | architect, security, perf — judgment-heavy |
+| Sonnet | code-reviewer, db, tdd — execution |
+| Haiku | search, grep — mechanical |
 
 Set per agent via `model:` frontmatter. Don't make everything Opus.
 

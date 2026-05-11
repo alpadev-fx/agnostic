@@ -2,80 +2,76 @@
 
 ## Principles
 
-1. **Token economy as a feature** — every byte in CLAUDE.md costs every session. Default to lazy loading.
-2. **Verification is structural** — agents say "Done" too easily. Hooks enforce it.
-3. **Layered context** — L0 guardrails / L1 lean knowledge / L2 agents / L3 commands / lazy rules.
-4. **Stack-agnostic core** — universal patterns + opt-in per-stack rule packs.
-5. **Model tiering** — Opus for judgment (architect, security, perf), Sonnet for execution.
+1. **Token economy is a feature** — every byte in CLAUDE.md costs every session. Default lazy.
+2. **Verification is structural** — agents say "Done" too easily. Hooks enforce.
+3. **Layered context** — L0/L1 always-loaded, L2/L3/Rules on demand.
+4. **Stack-agnostic core** — universal patterns + opt-in stack packs.
+5. **Model tiering** — opus for judgment, sonnet for execution.
 
 ## Layers
 
 ```
-L0 Guardrails    always-loaded    hooks + permissions
-L1 Knowledge     always-loaded    CLAUDE.md (≤3KB, no @-refs) + agnostic.toml
-L2 Agents        on demand        6 specialists
-L3 Commands      on demand        11 slash workflows
-Rules            on demand        universal + per-stack (paths: frontmatter)
+L0 Guardrails    always-loaded   hooks + permissions
+L1 Knowledge     always-loaded   CLAUDE.md (≤3KB, no @-refs) + .claude/agnostic.toml
+L2 Agents        on demand       6 specialists (architect, security, perf, ...)
+L3 Commands      on demand       11 workflows (/review, /ship, /catchup, ...)
+Rules            on demand       universal + per-stack (paths: frontmatter)
 ```
 
 ## Runtime loop
 
 ```
 UserPromptSubmit
- → Reasoning
- → PreToolUse hook (block destructive)
+ → Claude Reasoning
+ → PreToolUse hook         (block destructive)
  → Permission check
  → Tool execution
- → PostToolUse hook (block on lint fail / warn on truncation)
- [repeat]
- → Stop hook (block "Done" if typecheck/lint/test fail)
- → PreCompact hook (inject project summary)
+ → PostToolUse hook        (block on lint fail / warn on truncation)
+[repeat]
+ → Stop hook               (block "Done" if typecheck/lint/test fail)
+ → PreCompact hook         (inject summary at context limit)
  → Message delivered
 ```
 
 ## Hook contract
 
-Hooks emit JSON to stdout. Examples:
+Hooks emit JSON to stdout.
 
 **Block destructive Bash:**
 ```json
-{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"Blocked rm -rf /"}}
+{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"..."}}
 ```
 
 **Block agent on lint fail:**
 ```json
-{"decision":"block","reason":"Lint failed: <errors>"}
+{"decision":"block","reason":"Lint failed: ..."}
 ```
 
-**Add warning (non-blocking):**
+**Non-blocking warning:**
 ```json
-{"hookSpecificOutput":{"hookEventName":"PostToolUse","additionalContext":"WARNING: output truncated"}}
+{"hookSpecificOutput":{"hookEventName":"PostToolUse","additionalContext":"WARNING: ..."}}
 ```
 
 ## Layout
 
 ```
 agnostic/
-├── agnostic                   CLI
+├── agnostic                 CLI
 ├── bootstrap/
-│   ├── detect-stack.sh        Stack probe (monorepo aware)
-│   ├── discover.sh            Auto-discovery (README, Makefile, git, ...)
-│   └── install.sh             Wipe + write
-├── templates/
-│   ├── CLAUDE.md.tmpl         Agent-md Directives (15 sections)
-│   ├── agnostic.toml.tmpl     [project][verify][integrations]
-│   ├── settings.json.tmpl     Hook wiring
-│   ├── settings.local.json.tmpl
-│   └── memory/                Stub: agents/plan/progress/verify/gotchas
-├── hooks/                     6 lifecycle scripts
-├── agents/                    6 specialists
-├── commands/                  11 workflows
-└── rules/                     universal + 5 stack packs
+│   ├── detect-stack.sh      stack probe (monorepo aware)
+│   ├── discover.sh          auto-discovery (README, Makefile, git, ...)
+│   ├── install-plugins.sh   plugin + MCP install (~/.claude/settings.json)
+│   └── install.sh           wipe + write
+├── templates/               CLAUDE.md, agnostic.toml, settings.*, memory/
+├── hooks/                   6 lifecycle scripts
+├── agents/                  6 specialists
+├── commands/                11 workflows
+└── rules/                   universal + 5 stack packs
 ```
 
 ## Extension
 
-### New agent
+### Add agent
 ```markdown
 ---
 name: my-agent
@@ -83,11 +79,11 @@ description: When to use
 tools: Read, Grep
 model: sonnet
 ---
-Body
+Body.
 ```
 Drop in `agents/`.
 
-### New command
+### Add command
 ```markdown
 ---
 allowed-tools: Bash, Read
@@ -95,20 +91,15 @@ argument-hint: [args]
 description: One-line
 model: claude-sonnet-4-6
 ---
-Workflow body
+Workflow.
 ```
 Drop in `commands/`.
 
-### New stack rule pack
+### Add stack rule pack
 1. `mkdir rules/<stack>/`
-2. Add `.md` files with `paths:` frontmatter:
-   ```yaml
-   ---
-   paths: ["**/*.rs", "Cargo.toml"]
-   ---
-   ```
-3. Update `bootstrap/install.sh` stack→dir mapping.
+2. Add `.md` files with `paths: ["**/*.<ext>"]` frontmatter
+3. Update `bootstrap/install.sh` stack→dir mapping
 
 ## Non-goals
 
-Plugin marketplace, 3-way merge updates, telemetry, GUI, sandbox config.
+Plugin marketplace · 3-way merge updates · telemetry · GUI · sandbox config.

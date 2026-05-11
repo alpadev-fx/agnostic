@@ -12,15 +12,16 @@ brew install jq gh && gh auth login
 git clone https://github.com/alpadev-fx/agnostic.git ~/code/agnostic
 mkdir -p ~/bin && ln -s ~/code/agnostic/agnostic ~/bin/agnostic
 echo 'export PATH="$HOME/bin:$PATH"' >> ~/.zshrc && source ~/.zshrc
+agnostic help
 ```
-
-Verify: `agnostic help`
 
 ## 3. MCPs (1× per Claude account)
 
-Connect at https://claude.ai/settings/connectors → enable **Linear** + **Slack**.
+Connect at https://claude.ai/settings/connectors → Linear + Slack.
 
-Verify: `claude mcp list | grep -E "Linear|Slack"`
+```bash
+claude mcp list | grep -E "Linear|Slack"   # verify
+```
 
 ## 4. Per project
 
@@ -29,33 +30,48 @@ cd /path/to/your/project
 agnostic init
 ```
 
-That's it. Discovers project files (README, Makefile, go.mod, etc.), writes everything.
-
-## What ends up in the project
-
-```
-your-project/
-├── CLAUDE.md          ← always-loaded agent directives (at root — required by Claude Code)
-└── .claude/
-    ├── agnostic.toml         project config (verify cmds, integrations)
-    ├── settings.json         hook wiring (framework-managed)
-    ├── settings.local.json   your permission allowlist (gitignored)
-    ├── memory/               project state (agents/plan/progress/verify/gotchas)
-    ├── agents/               6 specialists (architect, security, perf, ...)
-    ├── commands/             11 slash workflows (/review, /ship, /catchup, ...)
-    ├── hooks/                6 lifecycle scripts
-    └── rules/                lazy-loaded knowledge packs
-```
+Done. Discovers from project files, wipes old config, installs framework, enables plugins.
 
 ## Flags
 
 | Flag | Effect |
 |---|---|
-| (none) | Wipe previous config, install fresh, preserve user files |
-| `--force` | Also overwrite agnostic.toml, settings.local.json, memory/ |
-| `--no-overwrite` | Skip files that already exist (idempotent) |
-| `--backup` | Move wiped config to `.claude.bak.<timestamp>/` instead of deleting |
-| `--dry-run` | Show what would happen, write nothing |
+| (none) | Wipe + install + enable plugins |
+| `--force` | Also overwrite agnostic.toml / settings.local.json / memory/ |
+| `--no-overwrite` | Skip files that already exist |
+| `--backup` | Move wiped config to `.claude.bak.<timestamp>/` |
+| `--skip-plugins` | Don't touch `~/.claude/settings.json` plugins |
+| `--dry-run` | Show what would happen |
+
+## What `init` writes
+
+```
+project/
+├── CLAUDE.md          ← agent directives (root, required by Claude Code)
+└── .claude/
+    ├── agnostic.toml
+    ├── settings.json
+    ├── settings.local.json
+    ├── memory/
+    ├── agents/        6 specialists
+    ├── commands/      11 workflows
+    ├── hooks/         6 scripts
+    └── rules/         universal + per-stack
+```
+
+## What `init` wipes (destructive — use `--backup` to keep)
+
+`.claude/` · `CLAUDE.md` · `agent-md.toml` · `AGENTS.md` · `AGENT.md` · `.codex/` · `.cursor/rules/agent-md.mdc` · `.windsurf/rules/agent-md.md` · `.agent-md/` · `.agents/` · old `.claude.bak.*/`
+
+## Preserved (never touched)
+
+`.claude/settings.local.json` (your permissions) · `.githooks/` · `.gemini/`
+
+## After install — refine 3 files
+
+1. **CLAUDE.md** — fill remaining TODOs (hard rules, etc.). Target ≤3KB. NEVER use `@`-refs.
+2. **.claude/agnostic.toml** — verify `[verify]` commands work for your project.
+3. **.claude/settings.local.json** — add project commands to allowlist (`Bash(make:*)`, etc.).
 
 ## Update framework
 
@@ -64,18 +80,21 @@ cd ~/code/agnostic && git pull
 cd /path/to/project && agnostic update
 ```
 
+`update` = `init --force`. Regenerates everything (incl. user files).
+
 ## Uninstall
 
 ```bash
 rm -rf .claude CLAUDE.md
 ```
 
-## Troubleshooting
+## Troubleshoot
 
 | Symptom | Fix |
 |---|---|
-| `agnostic: command not found` | Re-run step 2 (PATH setup) |
-| `jq: command not found` | `brew install jq` (macOS) / `apt install jq` (Debian) |
+| `agnostic: command not found` | Re-run step 2 PATH setup |
+| `jq: command not found` | `brew install jq` |
 | Hooks don't run | `chmod +x .claude/hooks/*.sh` |
 | Stop hook hangs | Blank `[verify] test` in `.claude/agnostic.toml` |
-| Stack not detected | `agnostic detect` to verify; framework still works with universal rules |
+| Stack not detected | `agnostic detect` — install still works with universal rules |
+| Too many tokens at boot | `/context` in Claude Code. Audit `@`-refs + unused MCPs |

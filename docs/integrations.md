@@ -1,4 +1,4 @@
-# MCP Integrations
+# Integrations
 
 ## Required
 
@@ -8,22 +8,43 @@
 brew install gh && gh auth login
 ```
 
-## Recommended
+## Recommended (connect at https://claude.ai/settings/connectors)
 
-**Linear MCP** — `/fix-issue`, `/catchup`, `/standup`, `/triage-inbox`
-**Slack MCP** — `/standup`, `/notify-team`
+- **Linear MCP** — `/fix-issue`, `/catchup`, `/standup`, `/triage-inbox`
+- **Slack MCP** — `/standup`, `/notify-team`
 
-Connect at https://claude.ai/settings/connectors. Verify:
+Verify:
 ```bash
 claude mcp list | grep -E "Linear|Slack"
 ```
 
 ## Optional
 
-- **Atlassian MCP** — substitute for Linear if you use Jira (don't enable both)
-- **Gmail / Calendar / Figma MCPs** — ad-hoc, not wired into any command
+- **Atlassian MCP** — substitute for Linear (don't enable both)
+- **Gmail / Calendar / Figma** — ad-hoc, no command wires them yet
 
-## Command × Integration matrix
+## Auto-installed by `agnostic init`
+
+| Plugin | Marketplace | What |
+|---|---|---|
+| `gopls-lsp` | claude-plugins-official | Go LSP |
+| `claude-mem` | thedotmack | persistent memory across sessions |
+| `playwright` | claude-plugins-official | browser MCP |
+| `atomic-agents` | claude-plugins-official | small focused agent pattern |
+| `frontend-design` | claude-plugins-official | UI design helpers |
+| `caveman` | caveman | terse mode |
+
+| MCP | URL | What |
+|---|---|---|
+| `stitch` | `https://stitch.googleapis.com/mcp` | Google design tool |
+
+Skip with `agnostic init --skip-plugins`.
+
+## External (not auto-installed)
+
+- **gstack** — CLI, separate install: see https://github.com/gstack-cli/gstack
+
+## Command × integration matrix
 
 | Command | gh | Linear | Slack |
 |---|:-:|:-:|:-:|
@@ -41,15 +62,17 @@ claude mcp list | grep -E "Linear|Slack"
 
 ## Safety: Slack drafts only
 
-Default permission allowlist includes `send_message_draft` but NOT `send_message`. Agent must draft + ask user before posting.
+Default allowlist: `send_message_draft` ✓ · `send_message` ✗
 
-## Detection at install
+Agent always drafts + asks user before posting.
+
+## At install
 
 `agnostic init` reports detected integrations:
 
 ```
 MCP integrations:
-  ✓ gh CLI authenticated (alpadev-fx)
+  ✓ gh CLI authenticated (you)
   ✓ Linear MCP connected
   ✓ Slack MCP connected
 ```
