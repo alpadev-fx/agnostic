@@ -49,23 +49,54 @@ echo "  Target:    $ABS_TARGET"
 [ "$NO_OVERWRITE" = "1" ] && echo "  Mode:      NO-OVERWRITE (skip existing framework files)"
 echo
 
-# --- Backup existing .claude/ if it has user content not from agnostic ---
-if [ -d "$ABS_TARGET/.claude" ] && [ "$NO_BACKUP" != "1" ] && [ "$DRY_RUN" != "1" ]; then
-  # Detect existing claude install: check for any non-agnostic agents, commands, hooks, or settings
-  PRE_EXISTING=0
-  for d in agents commands hooks rules; do
-    if [ -d "$ABS_TARGET/.claude/$d" ] && [ -n "$(ls -A "$ABS_TARGET/.claude/$d" 2>/dev/null)" ]; then
-      PRE_EXISTING=1
-      break
-    fi
-  done
-  [ -f "$ABS_TARGET/.claude/settings.json" ] && PRE_EXISTING=1
+# --- WIPE existing agent configs (move to single backup dir, then delete) ---
+# Goal: after init, only agnostic-managed files exist. Other agent
+# frameworks (agent-md, codex, cursor, windsurf) get moved to backup.
+if [ "$DRY_RUN" != "1" ]; then
+  TS=$(date +%Y%m%d-%H%M%S)
+  BACKUP_DIR="$ABS_TARGET/.agnostic-bak.$TS"
+  ANY_BACKED_UP=0
 
-  if [ "$PRE_EXISTING" = "1" ]; then
-    TS=$(date +%Y%m%d-%H%M%S)
-    BACKUP_DIR="$ABS_TARGET/.claude.bak.$TS"
-    cp -R "$ABS_TARGET/.claude" "$BACKUP_DIR"
-    echo "backup .claude/ → .claude.bak.$TS"
+  backup_path() {
+    # backup_path SOURCE — moves SOURCE under BACKUP_DIR preserving relative path
+    local src="$1"
+    [ -e "$ABS_TARGET/$src" ] || return 0
+    if [ "$NO_BACKUP" != "1" ]; then
+      mkdir -p "$BACKUP_DIR/$(dirname "$src")"
+      mv "$ABS_TARGET/$src" "$BACKUP_DIR/$src"
+      ANY_BACKED_UP=1
+    else
+      rm -rf "$ABS_TARGET/$src"
+    fi
+  }
+
+  # Wipe .claude/ (BUT preserve settings.local.json — user permissions)
+  if [ -d "$ABS_TARGET/.claude" ]; then
+    if [ -f "$ABS_TARGET/.claude/settings.local.json" ]; then
+      cp "$ABS_TARGET/.claude/settings.local.json" "$ABS_TARGET/.claude.settings.local.json.preserved"
+    fi
+    backup_path ".claude"
+    mkdir -p "$ABS_TARGET/.claude"
+    if [ -f "$ABS_TARGET/.claude.settings.local.json.preserved" ]; then
+      mv "$ABS_TARGET/.claude.settings.local.json.preserved" "$ABS_TARGET/.claude/settings.local.json"
+    fi
+  fi
+
+  # Wipe CLAUDE.md (will be regenerated)
+  backup_path "CLAUDE.md"
+
+  # Wipe other agent-framework configs (agent-md, codex, cursor, windsurf)
+  backup_path "agent-md.toml"
+  backup_path "AGENTS.md"
+  backup_path "AGENT.md"
+  backup_path ".codex"
+  backup_path ".cursor/rules/agent-md.mdc"
+  backup_path ".windsurf/rules/agent-md.md"
+  # NOTE: .githooks/ NOT removed — may contain user's own pre-commit logic
+
+  if [ "$ANY_BACKED_UP" = "1" ]; then
+    echo "wiped previous agent configs → .agnostic-bak.$TS/"
+    echo "(restore with: rm -rf .claude && mv .agnostic-bak.$TS/.claude .)"
     echo
   fi
 fi
@@ -250,12 +281,7 @@ else
     BUILD_CMDS="${AGNOSTIC_BUILD_COMMANDS:-# TODO: add build/test commands}"
     HARD_RULES="${AGNOSTIC_HARD_RULES:-TODO: list 5-10 hard rules specific to this project}"
     ARCH_POINTERS="${AGNOSTIC_ARCH_POINTERS:-TODO: list the most important entry points and aggregation files}"
-    # Back up existing CLAUDE.md before overwrite
-    if [ -f "CLAUDE.md" ] && [ "$NO_BACKUP" != "1" ]; then
-      CMD_TS=$(date +%Y%m%d-%H%M%S)
-      cp CLAUDE.md "CLAUDE.md.bak.$CMD_TS"
-      echo "backup CLAUDE.md → CLAUDE.md.bak.$CMD_TS"
-    fi
+    # CLAUDE.md backup already handled by wipe phase (.agnostic-bak.<ts>/CLAUDE.md)
     # Use python for multiline-safe substitution (sed gets tricky with \n in shell vars)
     python3 - "$FW_ROOT/templates/CLAUDE.md.tmpl" CLAUDE.md \
       "$PROJECT_NAME" "$DESC" "$STACK_SUM" "ARCHITECTURE.md" "" \
