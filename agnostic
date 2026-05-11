@@ -2,9 +2,9 @@
 # agnostic — top-level CLI wrapper.
 #
 # Usage:
-#   agnostic init [TARGET_DIR]     # install into target (default: cwd)
+#   agnostic init [TARGET_DIR]     # discover answers from project files, install
 #   agnostic detect [TARGET_DIR]   # print detected stacks
-#   agnostic update [TARGET_DIR]   # refresh framework files (overwrite)
+#   agnostic update [TARGET_DIR]   # refresh framework files (force overwrite)
 #   agnostic help
 
 set -e
@@ -23,52 +23,31 @@ shift || true
 
 case "$cmd" in
   init)
-    # Default: interactive wizard with auto-discovered defaults.
-    # --auto             → discover + install, NO prompts (just go)
-    # --non-interactive  → skip wizard, use heuristic stack defaults + TODOs
-    NON_INTERACTIVE=0
-    AUTO=0
-    NEW_ARGS=()
-    for a in "$@"; do
-      case "$a" in
-        --auto)            AUTO=1 ;;
-        --non-interactive) NON_INTERACTIVE=1 ;;
-        *)                 NEW_ARGS+=("$a") ;;
-      esac
-    done
-    # Auto-detect non-interactive if stdin is not a TTY
-    [ ! -t 0 ] && NON_INTERACTIVE=1
-
-    if [ "$AUTO" = "1" ]; then
-      # Run discover, export, then install
-      TARGET="${NEW_ARGS[0]:-$PWD}"
-      echo "agnostic init --auto"
-      echo "  Discovering project answers from files..."
-      eval "$("$FW_ROOT/bootstrap/discover.sh" "$TARGET")"
-      export AGNOSTIC_PROJECT_NAME AGNOSTIC_DESCRIPTION AGNOSTIC_STACK_SUMMARY \
-             AGNOSTIC_BUILD_COMMANDS AGNOSTIC_HARD_RULES AGNOSTIC_ARCH_POINTERS \
-             AGNOSTIC_LINT_FILE_CMD AGNOSTIC_TYPECHECK_CMD AGNOSTIC_LINT_CMD \
-             AGNOSTIC_TEST_CMD AGNOSTIC_GITHUB_REPO AGNOSTIC_LINEAR_TEAM
-      echo "  Discovered:"
-      echo "    Project:        $AGNOSTIC_PROJECT_NAME"
-      echo "    Stack:          $AGNOSTIC_STACK_SUMMARY"
-      echo "    GitHub repo:    $AGNOSTIC_GITHUB_REPO"
-      echo "    Linear team:    ${AGNOSTIC_LINEAR_TEAM:-(none)}"
-      echo "    Lint cmd:       $AGNOSTIC_LINT_CMD"
-      echo "    Test cmd:       $AGNOSTIC_TEST_CMD"
-      echo
-      exec "$FW_ROOT/bootstrap/install.sh" "${NEW_ARGS[@]}"
-    elif [ "$NON_INTERACTIVE" = "1" ]; then
-      exec "$FW_ROOT/bootstrap/install.sh" "${NEW_ARGS[@]}"
-    else
-      exec "$FW_ROOT/bootstrap/wizard.sh" "${NEW_ARGS[@]}"
-    fi
+    # Auto-discover from project files, then install. No prompts.
+    # Edit CLAUDE.md / agnostic.toml after if any field needs refinement.
+    TARGET="${1:-$PWD}"
+    NEW_ARGS=("$@")
+    echo "agnostic init"
+    echo "  Discovering project answers from files..."
+    eval "$("$FW_ROOT/bootstrap/discover.sh" "$TARGET")"
+    export AGNOSTIC_PROJECT_NAME AGNOSTIC_DESCRIPTION AGNOSTIC_STACK_SUMMARY \
+           AGNOSTIC_BUILD_COMMANDS AGNOSTIC_HARD_RULES AGNOSTIC_ARCH_POINTERS \
+           AGNOSTIC_LINT_FILE_CMD AGNOSTIC_TYPECHECK_CMD AGNOSTIC_LINT_CMD \
+           AGNOSTIC_TEST_CMD AGNOSTIC_GITHUB_REPO AGNOSTIC_LINEAR_TEAM
+    echo "  Discovered:"
+    echo "    Project:        ${AGNOSTIC_PROJECT_NAME:-?}"
+    echo "    Stack:          ${AGNOSTIC_STACK_SUMMARY:-?}"
+    echo "    GitHub repo:    ${AGNOSTIC_GITHUB_REPO:-(none)}"
+    echo "    Linear team:    ${AGNOSTIC_LINEAR_TEAM:-(none)}"
+    echo "    Lint cmd:       ${AGNOSTIC_LINT_CMD:-?}"
+    echo "    Test cmd:       ${AGNOSTIC_TEST_CMD:-?}"
+    echo
+    exec "$FW_ROOT/bootstrap/install.sh" "${NEW_ARGS[@]}"
     ;;
   detect)
     exec "$FW_ROOT/bootstrap/detect-stack.sh" --dir="${1:-$PWD}"
     ;;
   update)
-    # Update = force overwrite, non-interactive
     exec "$FW_ROOT/bootstrap/install.sh" "${1:-$PWD}" --force
     ;;
   help|--help|-h)
@@ -76,24 +55,24 @@ case "$cmd" in
 agnostic — opinionated Claude Code framework
 
 Commands:
-  init [DIR] [flags]   Interactive setup (default). Asks questions, then installs.
+  init [DIR] [flags]   Auto-discover project answers, then install
   detect [DIR]         Print stacks detected in DIR
-  update [DIR]         Alias for: init --force --non-interactive (refresh everything)
+  update [DIR]         Alias for: init --force (force overwrite of user files)
   help                 Show this message
 
 init flags:
-  --non-interactive    Skip wizard; use heuristic defaults + TODOs (CI-friendly)
   --force              Also overwrite user files (CLAUDE.md, agnostic.toml, settings.local.json)
-  --no-overwrite       Skip existing framework files (idempotent mode)
-  --no-backup          Don't back up existing .claude/ to .claude.bak.<timestamp>
+  --no-overwrite       Skip existing framework files (idempotent)
+  --no-backup          Don't back up existing .claude/ or CLAUDE.md
   --dry-run            Show what would happen; write nothing
 
-Wizard collects (skip with --non-interactive):
-  Project: name, description, stack summary
-  Verify:  per-file lint, typecheck, lint, test commands
-  Integrations: GitHub repo, Linear team, Slack channels
-  Content: build commands, hard rules, architecture pointers
-  Optional: commit to git after install
+Auto-discovery sources:
+  README.md          → one-line description
+  Makefile / scripts → build commands + lint/test
+  go.mod / etc.      → stack summary with versions (monorepo-aware)
+  CLAUDE.md.bak.*    → hard rules (preserved across re-install)
+  git remote/branch  → GitHub repo + Linear team
+  ~/.claude/         → plugins + marketplaces expected
 
 Default behavior:
   Overwrites framework files: .claude/{hooks,agents,commands,rules,settings.json}, CLAUDE.md
