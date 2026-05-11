@@ -55,32 +55,31 @@ case "$cmd" in
 agnostic — opinionated Claude Code framework
 
 Commands:
-  init [DIR] [flags]   Auto-discover project answers, then install
+  init [DIR] [flags]   Discover project answers, then install
   detect [DIR]         Print stacks detected in DIR
-  update [DIR]         Alias for: init --force (force overwrite of user files)
+  update [DIR]         Alias for: init --force (overwrite user files too)
   help                 Show this message
 
 init flags:
-  --force              Also overwrite user files (CLAUDE.md, agnostic.toml, settings.local.json)
-  --no-overwrite       Skip existing framework files (idempotent)
-  --no-backup          Don't back up existing .claude/ or CLAUDE.md
-  --dry-run            Show what would happen; write nothing
+  --force              Also overwrite agnostic.toml, settings.local.json, memory/
+  --no-overwrite       Skip files that already exist (idempotent)
+  --backup             Move wiped config to .claude.bak.<timestamp>/ instead of deleting
+  --dry-run            Show what would happen, write nothing
 
 Auto-discovery sources:
-  README.md          → one-line description
-  Makefile / scripts → build commands + lint/test
-  go.mod / etc.      → stack summary with versions (monorepo-aware)
+  README.md          → description
+  Makefile / scripts → build + lint/test commands
+  go.mod / etc.      → stack summary with versions
   CLAUDE.md.bak.*    → hard rules (preserved across re-install)
   git remote/branch  → GitHub repo + Linear team
-  ~/.claude/         → plugins + marketplaces expected
+  ~/.claude/         → expected plugins + marketplaces
 
-Default behavior:
-  Overwrites framework files: .claude/{hooks,agents,commands,rules,settings.json}, CLAUDE.md
-  Preserves user files:       agnostic.toml, .claude/settings.local.json, memory/*.md
-  Backs up existing .claude/  to .claude.bak.<timestamp>
-  Backs up existing CLAUDE.md to CLAUDE.md.bak.<timestamp>
+Default behavior (destructive — use --backup to keep prior config):
+  Wipes:     .claude/, CLAUDE.md, agent-md.toml, AGENTS.md, .codex/, etc.
+  Installs:  CLAUDE.md (root) + .claude/{hooks,agents,commands,rules,...}
+  Preserves: .claude/settings.local.json, .githooks/, .gemini/
 
-Full install guide: see INSTALL.md in the framework root.
+Full guide: INSTALL.md in the framework root.
 EOF
     ;;
   *)

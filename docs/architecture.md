@@ -1,147 +1,81 @@
-# Architecture — agnostic
+# Architecture
 
-## Design Principles
+## Principles
 
-### 1. Token economy is a feature
-Every byte in `CLAUDE.md` is paid for on every session start. Lazy-loaded files are free until needed. Default to lazy.
+1. **Token economy as a feature** — every byte in CLAUDE.md costs every session. Default to lazy loading.
+2. **Verification is structural** — agents say "Done" too easily. Hooks enforce it.
+3. **Layered context** — L0 guardrails / L1 lean knowledge / L2 agents / L3 commands / lazy rules.
+4. **Stack-agnostic core** — universal patterns + opt-in per-stack rule packs.
+5. **Model tiering** — Opus for judgment (architect, security, perf), Sonnet for execution.
 
-**Concrete rules:**
-- `CLAUDE.md` ≤ 3KB target
-- No `@`-references in `CLAUDE.md` (they auto-load the referenced file's full content)
-- Stack-specific knowledge lives in `.claude/rules/<stack>/*.md` with `paths:` frontmatter
-- Agent/command bodies load only when invoked
-
-### 2. Verification is structural, not advisory
-Agents say "Done" too easily. Hooks enforce it.
-
-- `Stop` hook runs typecheck + lint + tests; blocks completion if any fail
-- `PostToolUse` runs per-file lint on every Write/Edit; blocks Claude when lint fails
-- `PreToolUse` blocks destructive commands (rm -rf, DROP TABLE, force-push)
-
-### 3. Layered context (L0–L3)
+## Layers
 
 ```
-L0 Guardrails       always loaded     hooks + permissions
-L1 Knowledge        always loaded     CLAUDE.md + agnostic.toml (slim)
-L2 Agents           on demand         6 specialists
-L3 Commands         on demand         8 workflows
-Rules               on demand         universal + per-stack
+L0 Guardrails    always-loaded    hooks + permissions
+L1 Knowledge     always-loaded    CLAUDE.md (≤3KB, no @-refs) + agnostic.toml
+L2 Agents        on demand        6 specialists
+L3 Commands      on demand        11 slash workflows
+Rules            on demand        universal + per-stack (paths: frontmatter)
 ```
 
-Each layer has a job:
-- L0: prevent footguns
-- L1: identity (what stack? what hard rules?)
-- L2: when you need a specialist (deep architecture, security review)
-- L3: when you need a workflow (ship, review, fix-issue)
-- Rules: when you need stack-specific patterns
-
-### 4. Stack-agnostic core, stack-specific extension
-The framework core is universal. Stack-specific knowledge is in opt-in rule packs detected at install time. Adding a new stack means adding a `rules/<stack>/` directory — no core changes.
-
-### 5. Model tiering by cognitive load
-Not every agent needs Opus. The default tiering:
-- Opus: architect, security-reviewer, performance-analyst (judgment-heavy)
-- Sonnet: code-reviewer, db-specialist, tdd-guide (pattern-matching-heavy)
-
-## Runtime Loop
+## Runtime loop
 
 ```
 UserPromptSubmit
-  ↓
-Claude Reasoning
-  ↓
-PreToolUse hook ─────→ (block if destructive)
-  ↓
-Permission check
-  ↓
-Tool Execution
-  ↓
-PostToolUse hook ────→ (block if lint fails / warn if output truncated)
-  ↓
-[repeat until done]
-  ↓
-Stop hook ────────────→ (block if typecheck/lint/test fail)
-  ↓
-PreCompact hook ─────→ (only when context near limit; inject summary)
-  ↓
-Message Delivered
+ → Reasoning
+ → PreToolUse hook (block destructive)
+ → Permission check
+ → Tool execution
+ → PostToolUse hook (block on lint fail / warn on truncation)
+ [repeat]
+ → Stop hook (block "Done" if typecheck/lint/test fail)
+ → PreCompact hook (inject project summary)
+ → Message delivered
 ```
 
-## File Layout
+## Hook contract
+
+Hooks emit JSON to stdout. Examples:
+
+**Block destructive Bash:**
+```json
+{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"Blocked rm -rf /"}}
+```
+
+**Block agent on lint fail:**
+```json
+{"decision":"block","reason":"Lint failed: <errors>"}
+```
+
+**Add warning (non-blocking):**
+```json
+{"hookSpecificOutput":{"hookEventName":"PostToolUse","additionalContext":"WARNING: output truncated"}}
+```
+
+## Layout
 
 ```
 agnostic/
-├── README.md
-├── agnostic                  CLI wrapper
+├── agnostic                   CLI
 ├── bootstrap/
-│   ├── detect-stack.sh        Probes target dir for stack markers
-│   └── install.sh             Copies templates, fills variables
+│   ├── detect-stack.sh        Stack probe (monorepo aware)
+│   ├── discover.sh            Auto-discovery (README, Makefile, git, ...)
+│   └── install.sh             Wipe + write
 ├── templates/
-│   ├── CLAUDE.md.tmpl
-│   ├── settings.json.tmpl
+│   ├── CLAUDE.md.tmpl         Agent-md Directives (15 sections)
+│   ├── agnostic.toml.tmpl     [project][verify][integrations]
+│   ├── settings.json.tmpl     Hook wiring
 │   ├── settings.local.json.tmpl
-│   └── agnostic.toml.tmpl
-├── hooks/                     Universalized from production setup
-├── agents/                    6 archetypes (stack-agnostic)
-├── commands/                  8 workflows (stack-agnostic)
-├── rules/
-│   ├── universal/             general, security, ci-cd
-│   ├── backend-go/
-│   ├── backend-node/
-│   ├── backend-python/
-│   ├── frontend-react/
-│   └── infra-terraform/
-└── docs/
-    └── architecture.md
+│   └── memory/                Stub: agents/plan/progress/verify/gotchas
+├── hooks/                     6 lifecycle scripts
+├── agents/                    6 specialists
+├── commands/                  11 workflows
+└── rules/                     universal + 5 stack packs
 ```
 
-## Hook Output Contract
+## Extension
 
-Hooks communicate with Claude Code via stdout JSON.
-
-### PreToolUse — block
-```json
-{
-  "hookSpecificOutput": {
-    "hookEventName": "PreToolUse",
-    "permissionDecision": "deny",
-    "permissionDecisionReason": "Blocked rm -rf /"
-  }
-}
-```
-
-### PostToolUse — surface error to agent
-```json
-{
-  "decision": "block",
-  "reason": "Lint failed. Fix before continuing: <errors>"
-}
-```
-
-### PostToolUse — additional context (warning, doesn't block)
-```json
-{
-  "hookSpecificOutput": {
-    "hookEventName": "PostToolUse",
-    "additionalContext": "WARNING: output truncated"
-  }
-}
-```
-
-### PreCompact — inject context-preserving summary
-```json
-{
-  "hookSpecificOutput": {
-    "hookEventName": "PreCompact",
-    "additionalContext": "Project: X. Hard rules: Y. See CLAUDE.md."
-  }
-}
-```
-
-## Extension Points
-
-### Add a new agent
-Drop a markdown file with frontmatter into `agents/`:
+### New agent
 ```markdown
 ---
 name: my-agent
@@ -149,11 +83,11 @@ description: When to use
 tools: Read, Grep
 model: sonnet
 ---
-Body content
+Body
 ```
+Drop in `agents/`.
 
-### Add a new command
-Drop a markdown file into `commands/`:
+### New command
 ```markdown
 ---
 allowed-tools: Bash, Read
@@ -163,23 +97,18 @@ model: claude-sonnet-4-6
 ---
 Workflow body
 ```
+Drop in `commands/`.
 
-### Add a new stack rule pack
-Create `rules/<stack-name>/<rule>.md` with `paths:` frontmatter pointing at the file globs that should trigger this rule:
-```yaml
----
-paths:
-  - "**/*.rs"
-  - "Cargo.toml"
----
-```
+### New stack rule pack
+1. `mkdir rules/<stack>/`
+2. Add `.md` files with `paths:` frontmatter:
+   ```yaml
+   ---
+   paths: ["**/*.rs", "Cargo.toml"]
+   ---
+   ```
+3. Update `bootstrap/install.sh` stack→dir mapping.
 
-Then update `bootstrap/install.sh` to map detected stack to your new directory.
+## Non-goals
 
-## Non-Goals (for MVP)
-
-- Plugin marketplace
-- Update diffing / 3-way merge (use `agnostic update --force` + git for now)
-- Telemetry / usage analytics
-- GUI / TUI
-- Sandbox configuration (Claude Code handles this — framework doesn't add to it)
+Plugin marketplace, 3-way merge updates, telemetry, GUI, sandbox config.
