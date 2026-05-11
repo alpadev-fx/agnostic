@@ -18,9 +18,11 @@
 #   eval "$(./discover.sh /path/to/project)"
 #   Or sourced via wizard.sh as defaults.
 
-set -e
+# NOTE: no `set -e` here. Discovery is best-effort; missing files / failed
+# greps must not abort the script. Each step handles its own errors.
+shopt -s nullglob  # empty globs expand to nothing instead of literal
 TARGET_DIR="${1:-$PWD}"
-cd "$TARGET_DIR"
+cd "$TARGET_DIR" 2>/dev/null || exit 0
 
 # === DESCRIPTION ===
 # Pull first non-heading paragraph from README.md
