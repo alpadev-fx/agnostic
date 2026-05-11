@@ -87,12 +87,24 @@ if [ "$DRY_RUN" != "1" ]; then
 
   # Wipe other agent-framework configs (agent-md, codex, cursor, windsurf)
   wipe_path "agent-md.toml"
+  wipe_path ".agent-md"
+  wipe_path ".agents"
   wipe_path "AGENTS.md"
   wipe_path "AGENT.md"
   wipe_path ".codex"
   wipe_path ".cursor/rules/agent-md.mdc"
   wipe_path ".windsurf/rules/agent-md.md"
   # NOTE: .githooks/ NOT touched — may contain user's own pre-commit logic
+  # NOTE: .gemini/ NOT touched — likely user's own Gemini config, not agent-md
+
+  # Wipe ALL prior backup dirs from earlier installs (cleanup)
+  for old_bak in "$ABS_TARGET"/.claude.bak.* "$ABS_TARGET"/.agnostic-bak.*; do
+    [ -d "$old_bak" ] || continue
+    # Skip the backup we just created (current TS), if --backup was used
+    [ "$old_bak" = "$BACKUP_DIR" ] && continue
+    rm -rf "$old_bak"
+    ANY_PROCESSED=1
+  done
 
   if [ "$ANY_PROCESSED" = "1" ]; then
     if [ "$BACKUP" = "1" ]; then
