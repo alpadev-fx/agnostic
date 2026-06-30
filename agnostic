@@ -91,6 +91,7 @@ Recommended plugins (auto-installed to ~/.claude/settings.json):
   atomic-agents@claude-plugins-official    small focused agent pattern
   frontend-design@claude-plugins-official  UI design helpers
   caveman@caveman                          terse mode
+  headroom@headroom-marketplace            startup hooks / context savings
 
 Recommended MCPs (auto-added via claude mcp add):
   stitch                                   Google design tool

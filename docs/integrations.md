@@ -27,8 +27,9 @@ Verify: `claude mcp list | grep -E "Linear|Slack"`
 | `atomic-agents@claude-plugins-official` | focused agent pattern |
 | `frontend-design@claude-plugins-official` | UI helpers |
 | `caveman@caveman` | terse mode |
+| `headroom@headroom-marketplace` | startup hooks / context savings |
 
-**Marketplaces:** `thedotmack` · `caveman`
+**Marketplaces:** `thedotmack` · `caveman` · `headroom-marketplace`
 
 **MCP via `claude mcp add`:** `stitch` (https://stitch.googleapis.com/mcp)
 

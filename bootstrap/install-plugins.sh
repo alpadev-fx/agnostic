@@ -20,11 +20,12 @@ PLUGINS=(
   "atomic-agents@claude-plugins-official"       # small focused agent pattern
   "frontend-design@claude-plugins-official"     # UI design helpers
   "caveman@caveman"                             # terse mode
+  "headroom@headroom-marketplace"               # startup hooks / context savings
 )
 
 # === Marketplace list (name → github repo) ===
-MARKETS_NAMES=(thedotmack caveman)
-MARKETS_REPOS=(thedotmack/claude-mem JuliusBrussee/caveman)
+MARKETS_NAMES=(thedotmack caveman headroom-marketplace)
+MARKETS_REPOS=(thedotmack/claude-mem JuliusBrussee/caveman headroomlabs-ai/headroom)
 
 # === MCPs (name → URL) ===
 MCP_NAMES=(stitch)

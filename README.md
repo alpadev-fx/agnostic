@@ -69,7 +69,7 @@ project/
 ## Auto-installed
 
 **Plugins** (`~/.claude/settings.json`):
-`gopls-lsp` · `claude-mem` · `playwright` · `atomic-agents` · `frontend-design` · `caveman`
+`gopls-lsp` · `claude-mem` · `playwright` · `atomic-agents` · `frontend-design` · `caveman` · `headroom`
 
 **MCP:** `stitch`
 
