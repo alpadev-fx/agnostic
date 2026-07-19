@@ -59,6 +59,24 @@ Allowlist: `send_message_draft` ✓ · `send_message` ✗
 
 Agent always drafts → user reviews → user sends.
 
+## Knowledge map (Obsidian + graphify)
+
+`graphify` (skill at `~/.claude/skills/graphify`) turns any pile of documents into an Obsidian vault of linked notes — the map. Build/refresh with `/map [source]`. Vault path: `.claude/agnostic.toml [map] vault` (default `vault`).
+
+The map is durable, brain-agnostic memory: read relevant notes before acting on a documented domain, write findings back as linked notes, load selectively.
+
+## Brains (multi-CLI)
+
+`CLAUDE.md` is the single directives source. `agnostic init` mirrors it to `AGENTS.md` (symlink), so any agentic CLI shares the same brain:
+
+| Brain | Reads |
+|---|---|
+| Claude Code | `CLAUDE.md` + `.claude/` |
+| Codex CLI | `AGENTS.md` → `CLAUDE.md` |
+| Antigravity CLI | `AGENTS.md` → `CLAUDE.md` |
+
+All read the same Obsidian map. Switch brains without losing state.
+
 ## Optional
 
 - **Atlassian MCP** — substitute Linear if Jira (don't enable both)

@@ -40,3 +40,9 @@
 - Half-finished implementations
 - Backwards-compatibility shims when you can change the code
 - Adding features the user didn't ask for
+
+## Execution loop
+- Every task runs as a loop, not one shot: understand → act → verify → correct, repeat until the task is actually solved and verified — or you hit a real blocker or an owner's decision.
+- A turn ends when the problem is proven solved, never at "I made an attempt". If a check fails, read the real output, correct the hypothesis, go again.
+- Same approach fails twice → stop repeating it. Re-read top-down, state the wrong assumption, change strategy. The `stop-verify` hook enforces this: "Done" is blocked while typecheck/lint/test fail.
+- Never hand back half-finished or unverified work as done.

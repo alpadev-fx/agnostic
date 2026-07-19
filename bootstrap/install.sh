@@ -207,17 +207,17 @@ for hook in _lib.sh block-destructive.sh post-edit-verify.sh stop-verify.sh trun
 done
 
 # Agents
-for agent in architect code-reviewer security-reviewer performance-analyst db-specialist tdd-guide; do
+for agent in architect code-reviewer security-reviewer performance-analyst db-specialist tdd-guide mentor; do
   write_fw "$FW_ROOT/agents/$agent.md" ".claude/agents/$agent.md"
 done
 
 # Commands
-for cmd in review ship catchup fix-issue new-feature bug-hunt debug-service add-endpoint standup triage-inbox notify-team; do
+for cmd in review ship catchup fix-issue new-feature bug-hunt debug-service add-endpoint standup triage-inbox notify-team learn map; do
   write_fw "$FW_ROOT/commands/$cmd.md" ".claude/commands/$cmd.md"
 done
 
 # Universal rules
-for rule in general security ci-cd; do
+for rule in general security ci-cd knowledge-map; do
   write_fw "$FW_ROOT/rules/universal/$rule.md" ".claude/rules/universal/$rule.md"
 done
 
@@ -230,6 +230,11 @@ while IFS= read -r stack; do
     python)    STACK_DIR="backend-python" ;;
     react)     STACK_DIR="frontend-react" ;;
     terraform) STACK_DIR="infra-terraform" ;;
+    c)         STACK_DIR="systems-c" ;;
+    cpp)       STACK_DIR="systems-cpp" ;;
+    asm)       STACK_DIR="systems-asm" ;;
+    rpi)       STACK_DIR="embedded-rpi" ;;
+    opi)       STACK_DIR="embedded-opi" ;;
     *)         continue ;;
   esac
   if [ -d "$FW_ROOT/rules/$STACK_DIR" ]; then
@@ -332,6 +337,13 @@ PYEOF
   fi
 fi
 
+# AGENTS.md mirrors CLAUDE.md so Codex / Antigravity (any AGENTS.md brain) share
+# the same directives + knowledge map. CLAUDE.md stays the single source of truth.
+if [ "$DRY_RUN" != "1" ] && [ -f "CLAUDE.md" ]; then
+  ln -sf CLAUDE.md AGENTS.md
+  echo "linked AGENTS.md → CLAUDE.md (multi-brain)"
+fi
+
 # --- memory/ scaffold under .claude/ (user-managed, preserve existing) ---
 [ "$DRY_RUN" = "1" ] || mkdir -p .claude/memory
 case "$PRIMARY" in
@@ -376,7 +388,7 @@ else
   MARKETPLACES_LIST="(none — only default Claude Code marketplaces)"
 fi
 
-for mem in agents plan progress verify gotchas; do
+for mem in agents plan progress verify gotchas learning; do
   src="$FW_ROOT/templates/memory/$mem.md.tmpl"
   dst=".claude/memory/$mem.md"
   [ -f "$src" ] || continue
