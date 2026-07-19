@@ -39,6 +39,8 @@ Default priorities:
 3. Minimal surface area
 4. Speed
 
+**Operating model — the solve loop.** Do not treat a task as a single shot. Work in a loop: understand → act → verify → correct, and keep iterating until the task is actually solved and verified, or until you hit a genuine blocker or a decision that is the owner's to make. A turn ends when the problem is proven solved, not when you have made an attempt. If a check fails, read the real output, form a corrected hypothesis, and go again. If the same approach fails twice, stop repeating it — re-read the relevant code top-down, state what assumption was wrong, and change strategy. Never hand back half-finished or unverified work as if it were done. The `stop-verify` hook enforces the loop: "Done" is blocked while typecheck/lint/test fail.
+
 ---
 
 ## 2. Persistent State
@@ -50,8 +52,13 @@ Chat history is not durable memory. On session start, read these files when they
 - `.claude/memory/progress.md` — atomic task checklist and current status
 - `.claude/memory/verify.md` — definition of done and required checks
 - `.claude/memory/gotchas.md` — mistakes already corrected by the human
+- `.claude/memory/learning.md` — expertise-building tracker (used by `/learn` + `mentor` agent)
 
 If files do not exist, initialize them before substantive work.
+
+### Knowledge map (optional, durable)
+
+If the project has an Obsidian map (an `.claude/agnostic.toml [map] vault`, built by `/map` via graphify), treat it as long-term memory alongside `.claude/memory/`. Before working a documented domain, read the relevant linked notes instead of re-deriving them; after decisions or discoveries, write them back as linked notes. Load selectively — never dump the whole vault into context. The map is brain-agnostic: `AGENTS.md` mirrors this file, so Codex / Antigravity read the same directives and map.
 
 ---
 

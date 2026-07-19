@@ -7,6 +7,8 @@
 3. **Layered context** — L0/L1 always-loaded, L2/L3/Rules on demand.
 4. **Stack-agnostic core** — universal patterns + opt-in stack packs.
 5. **Model tiering** — opus for judgment, sonnet for execution.
+6. **Brain-agnostic** — `CLAUDE.md` is the source of truth, mirrored to `AGENTS.md`; Claude Code, Codex, and Antigravity read the same directives + Obsidian map.
+7. **Solve loop** — every task iterates understand → act → verify → correct until proven done; `stop-verify` blocks premature "Done".
 
 ## Layers
 
@@ -16,6 +18,7 @@ L1 Knowledge     always-loaded   CLAUDE.md (≤3KB, no @-refs) + .claude/agnosti
 L2 Agents        on demand       6 specialists
 L3 Commands      on demand       11 workflows
 Rules            on demand       universal + per-stack (paths: frontmatter)
+Map              on demand       Obsidian vault via graphify (durable, brain-agnostic)
 ```
 
 ## Runtime loop
