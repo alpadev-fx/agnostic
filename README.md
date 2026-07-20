@@ -75,6 +75,8 @@ project/
 
 **Skill:** `gstack` (cloned to `~/.claude/skills/gstack`)
 
+**Tool:** `notch-notify` (macOS — notch Live Activity for CC sessions; builds to `~/.notch-notify`, registers hooks)
+
 Skip: `agnostic init --skip-plugins`.
 
 ## Docs

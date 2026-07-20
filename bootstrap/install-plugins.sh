@@ -117,4 +117,33 @@ else
   fi
 fi
 
+# notch-notify — Dynamic Island / notch Live Activity for Claude Code sessions.
+# Not a marketplace plugin: its own install.sh builds a Swift binary into
+# ~/.notch-notify and registers hooks in ~/.claude/settings.json (idempotent,
+# backs up settings first). macOS + swift toolchain only.
+NOTCH_HOME="${NOTCH_NOTIFY_HOME:-$HOME/.notch-notify}"
+NOTCH_REPO="https://github.com/LedgerFi-Inc/notch-notify.git"
+if [ "$(uname)" != "Darwin" ]; then
+  echo "  ⏭ notch-notify skipped (macOS only)"
+elif [ -x "$NOTCH_HOME/bin/notch-notify" ]; then
+  echo "  ✓ notch-notify already installed ($NOTCH_HOME)"
+elif ! command -v swift &>/dev/null; then
+  echo "  ⚠ notch-notify needs the swift toolchain — skipping (run: xcode-select --install, then re-run)"
+else
+  NOTCH_TMP="$(mktemp -d)"
+  if git clone --quiet "$NOTCH_REPO" "$NOTCH_TMP/notch-notify" 2>/dev/null; then
+    if ( cd "$NOTCH_TMP/notch-notify" && ./install.sh ); then
+      echo "  + notch-notify installed → $NOTCH_HOME (hooks registered — start a new session)"
+    else
+      echo "  ⚠ notch-notify install.sh failed — install manually:"
+      echo "    git clone $NOTCH_REPO && cd notch-notify && ./install.sh"
+    fi
+    rm -rf "$NOTCH_TMP"
+  else
+    rm -rf "$NOTCH_TMP"
+    echo "  ⚠ notch-notify clone failed — install manually:"
+    echo "    git clone $NOTCH_REPO && cd notch-notify && ./install.sh"
+  fi
+fi
+
 echo "Plugins + MCPs install: done"
