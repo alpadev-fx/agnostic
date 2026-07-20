@@ -35,6 +35,8 @@ Verify: `claude mcp list | grep -E "Linear|Slack"`
 
 **Skill via `git clone`:** `gstack` → `~/.claude/skills/gstack` (from `github.com/garrytan/gstack`)
 
+**Tool via `install.sh`:** `notch-notify` → `~/.notch-notify` (from `github.com/LedgerFi-Inc/notch-notify`) — macOS only; builds a Swift binary and registers Claude Code hooks in `~/.claude/settings.json`. Skipped on non-macOS or without the swift toolchain.
+
 Skip: `agnostic init --skip-plugins`.
 
 ## Command × integration matrix
